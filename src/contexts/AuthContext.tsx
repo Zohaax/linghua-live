@@ -23,6 +23,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   joinClassroom: (code: string) => Promise<void>;
   createClassroom: (name: string) => Promise<string>;
+  setAvatar: (avatarId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -92,33 +93,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   };
 
+  // Right after sign-up the `user` state has not updated yet, so ask Supabase for the session user.
+  const currentUser = async () => {
+    if (user) return user;
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) throw new Error("Not authenticated");
+    return data.user;
+  };
+
   const joinClassroom = async (code: string) => {
-    if (!user) throw new Error("Not authenticated");
+    const me = await currentUser();
+    const clean = code.trim().toUpperCase();
+
+    // Preferred: the join_classroom function (students cannot read classrooms they are not in)
+    const { error: rpcError } = await (supabase as any).rpc("join_classroom", { class_code: clean });
+    if (!rpcError) {
+      await fetchProfile(me.id);
+      return;
+    }
+    // Function not deployed yet: fall back to the direct lookup
+    if (rpcError.code !== "PGRST202" && rpcError.code !== "42883") throw rpcError;
 
     const { data: classroom } = await (supabase as any)
       .from("classrooms")
       .select("id")
-      .eq("code", code)
-      .single();
+      .eq("code", clean)
+      .maybeSingle();
 
     if (!classroom) throw new Error("Classroom not found");
 
     const { error } = await (supabase as any)
       .from("profiles")
       .update({ classroom_id: classroom.id })
-      .eq("id", user.id);
+      .eq("id", me.id);
 
     if (error) throw error;
-    await fetchProfile(user.id);
+    await fetchProfile(me.id);
+  };
+
+  const setAvatar = async (avatarId: string) => {
+    const me = await currentUser();
+    const { error } = await (supabase as any).from("profiles").update({ avatar_url: avatarId }).eq("id", me.id);
+    if (error) throw error;
+    await fetchProfile(me.id);
   };
 
   const createClassroom = async (name: string): Promise<string> => {
-    if (!user) throw new Error("Not authenticated");
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const me = await currentUser();
+    // No 0/O or 1/I so the code is easy to read out to a class
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const code = Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
 
     const { error } = await (supabase as any)
       .from("classrooms")
-      .insert({ teacher_id: user.id, name, code });
+      .insert({ teacher_id: me.id, name, code });
 
     if (error) throw error;
     return code;
@@ -127,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, session, profile, loading,
-      signUp, signIn, signOut, joinClassroom, createClassroom,
+      signUp, signIn, signOut, joinClassroom, createClassroom, setAvatar,
     }}>
       {children}
     </AuthContext.Provider>
