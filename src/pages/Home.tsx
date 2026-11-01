@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import Lantern from "@/components/lantern/Lantern";
 import Seal from "@/components/Seal";
+import AvatarIcon from "@/components/AvatarIcon";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,18 +19,19 @@ const Home = () => {
   return user ? <Today /> : <Landing />;
 };
 
-/* Logged out: who LingHua is for, and one real word to show how it works */
+/* Logged out: one real word to show how it works, what you can do, and Hua */
 const Landing = () => {
   const { t } = useLanguage();
 
-  const audiences = [
-    { seal: "童", titleKey: "home.for.kids", descKey: "home.for.kids.desc" },
-    { seal: "学", titleKey: "home.for.students", descKey: "home.for.students.desc" },
-    { seal: "旅", titleKey: "home.for.travellers", descKey: "home.for.travellers.desc" },
+
+  const features = [
+    { icon: "lotus", titleKey: "home.features.bridge", descKey: "home.features.bridge.desc" },
+    { icon: "bamboo", titleKey: "home.features.progress", descKey: "home.features.progress.desc" },
+    { icon: "dumpling", titleKey: "home.features.vocab", descKey: "home.features.vocab.desc" },
   ];
 
   return (
-    <div className="container mx-auto px-4 py-12 md:py-16 flex flex-col gap-16">
+    <div className="container mx-auto px-4 py-12 md:py-16 flex flex-col gap-16 md:gap-20">
       <section className="grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-10 items-center">
         <div className="flex flex-col gap-6">
           <span lang="zh" className="font-zh font-bold text-primary text-2xl">灵话</span>
@@ -50,11 +52,13 @@ const Landing = () => {
           <div className="flex flex-col gap-1">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("home.sample.label")}</span>
             <span lang="zh" className="font-zh font-bold text-6xl leading-tight">你好</span>
-            <span className="font-pinyin text-xl font-bold text-primary">nǐ hǎo</span>
-            <span lang="ar" dir="rtl" className="text-2xl self-start">مرحبا</span>
-            <span className="text-sm text-muted-foreground mt-2">
-              {t("home.sample.sounds")} <span lang="ar" dir="rtl" className="font-bold text-foreground">ني هاو</span>
-            </span>
+            <span className="font-pinyin text-xl font-bold text-primary">Nǐ hǎo</span>
+            <span lang="ar" dir="rtl" className="text-2xl self-start">مرحباً</span>
+            <div className="mt-3 pt-3 border-t-2 border-border flex flex-col gap-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("home.sample.sounds")}</span>
+              <span lang="ar" dir="rtl" className="text-2xl font-bold self-start">ني هاو</span>
+              <span className="text-sm text-muted-foreground">{t("home.sample.bridge")}</span>
+            </div>
           </div>
           <div className="lantern-glow [--glow-size:230%] [--glow-y:58%]">
             <Lantern mood="idle" className="w-28 h-28 md:w-36 md:h-36" />
@@ -62,19 +66,42 @@ const Landing = () => {
         </Card>
       </section>
 
-      <section className="flex flex-col gap-6 max-w-3xl">
-        <h2 className="text-3xl font-bold">{t("home.for.title")}</h2>
+      <section className="flex flex-col gap-6 w-full max-w-3xl mx-auto">
+        <h2 className="text-3xl md:text-4xl font-bold text-balance">{t("home.features.title")}</h2>
         <ul className="flex flex-col border-2 border-stroke rounded-[14px] bg-card overflow-hidden">
-          {audiences.map((a) => (
-            <li key={a.titleKey} className="flex items-start gap-4 p-5 border-b-2 border-border last:border-b-0">
-              <Seal char={a.seal} />
-              <div>
-                <h3 className="text-xl font-bold">{t(a.titleKey)}</h3>
-                <p className="text-muted-foreground">{t(a.descKey)}</p>
+          {features.map((f) => (
+            <li key={f.titleKey} className="flex items-center gap-4 p-5 border-b-2 border-border last:border-b-0">
+              <AvatarIcon id={f.icon} className="w-12 h-12 shrink-0" />
+              <div className="flex flex-col gap-1">
+                <h3 className="text-xl font-bold">{t(f.titleKey)}</h3>
+                <p className="text-muted-foreground">{t(f.descKey)}</p>
               </div>
             </li>
           ))}
         </ul>
+      </section>
+
+      {/* Hua gets her own block so she reads as a character, not a feature line */}
+      <section className="w-full max-w-3xl mx-auto flex flex-col sm:flex-row items-center gap-6 rounded-[14px] border-2 border-stroke bg-secondary dark:bg-card p-6 md:p-8">
+        <div className="lantern-glow [--glow-size:200%] [--glow-y:55%] shrink-0">
+          <Lantern mood="happy" className="w-28 h-28 md:w-32 md:h-32" />
+        </div>
+        <div className="flex flex-col gap-3 text-center sm:text-start items-center sm:items-start">
+          <h2 className="text-2xl md:text-3xl font-bold text-balance">{t("home.hua.title")}</h2>
+          <p className="text-muted-foreground">{t("home.hua.ask")}</p>
+          <p className="font-bold text-primary">{t("home.hua.tagline")}</p>
+          <Link to="/tutor">
+            <Button size="lg">{t("home.hua.cta")}</Button>
+          </Link>
+        </div>
+      </section>
+
+      <section className="flex flex-col items-center text-center gap-4 py-4">
+        <h2 className="text-3xl md:text-4xl font-bold text-balance max-w-2xl">{t("home.closing.title")}</h2>
+        <p className="text-lg text-muted-foreground max-w-xl">{t("home.closing.desc")}</p>
+        <Link to="/auth">
+          <Button size="lg">{t("home.closing.cta")}</Button>
+        </Link>
       </section>
     </div>
   );
