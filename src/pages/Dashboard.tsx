@@ -1,17 +1,30 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  LineChart, Line,
 } from "recharts";
-import { TrendingUp, Users, Award, AlertCircle, Copy, Calendar, BookOpen, Zap, Flame } from "lucide-react";
+import Lantern from "@/components/lantern/Lantern";
+import Seal from "@/components/Seal";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import StudentDashboard, { type StudentDashboardData, type ToneScore, type MissedWord } from "@/components/dashboard/StudentDashboard";
+
+/* Tone of each syllable from its pinyin tone mark (neutral tones are skipped) */
+const TONE_CHARS: Record<string, 1 | 2 | 3 | 4> = {};
+["āēīōūǖ", "áéíóúǘ", "ǎěǐǒǔǚ", "àèìòùǜ"].forEach((chars, i) => {
+  for (const ch of chars) TONE_CHARS[ch] = (i + 1) as 1 | 2 | 3 | 4;
+});
+const tonesIn = (pinyin: string): Set<1 | 2 | 3 | 4> => {
+  const found = new Set<1 | 2 | 3 | 4>();
+  for (const ch of (pinyin || "").normalize("NFC")) if (TONE_CHARS[ch]) found.add(TONE_CHARS[ch]);
+  return found;
+};
 
 // ──────────────────────────────────────────
 //  Teacher-specific types
@@ -44,12 +57,6 @@ interface DailyScore {
   avgScore: number;
 }
 
-interface CategoryScore {
-  category: string;
-  score: number;
-  fullMark: number;
-}
-
 interface LevelProgress {
   level: string;
   mastered: number;
@@ -76,7 +83,6 @@ const Dashboard = () => {
 
   // Student analytics state
   const [dailyScores, setDailyScores] = useState<DailyScore[]>([]);
-  const [categoryScores, setCategoryScores] = useState<CategoryScore[]>([]);
   const [practiceDays, setPracticeDays] = useState<Set<string>>(new Set());
   const [wordsToReview, setWordsToReview] = useState(0);
   const [levelProgress, setLevelProgress] = useState<LevelProgress[]>([]);
@@ -84,6 +90,9 @@ const Dashboard = () => {
   const [studentStreak, setStudentStreak] = useState(0);
   const [studentWordsLearned, setStudentWordsLearned] = useState(0);
   const [studentAvgScore, setStudentAvgScore] = useState(0);
+  const [toneScores, setToneScores] = useState<ToneScore[]>([]);
+  const [missedWords, setMissedWords] = useState<MissedWord[]>([]);
+  const [hasAnyAttempt, setHasAnyAttempt] = useState(false);
 
   const [loading, setLoading] = useState(true);
 
@@ -126,7 +135,7 @@ const Dashboard = () => {
           .maybeSingle(),
         supabase
           .from("vocab")
-          .select("id, hanzi, pinyin, arabic_translation, level, category"),
+          .select("id, hanzi, pinyin, arabic_translation, level"),
         (supabase as any)
           .from("word_reviews" as any)
           .select("id, vocab_id, next_review_date, total_attempts, best_score")
@@ -165,34 +174,19 @@ const Dashboard = () => {
       setDailyScores(dailyData);
       setPracticeDays(practiceDaySet);
 
-      // 2. Category mastery — join attempts with vocab by vocab_id
+      // 2. Look up vocab by id
       const vocabMap: Record<string, any> = {};
       for (const v of vocab) {
         vocabMap[v.id] = v;
       }
-      const categoryMap: Record<string, number[]> = {};
-      // Use ALL attempts for category mastery (not just last 30 days)
+      // All attempts (not just the last 30 days) for mastery, tones and missed words
       const allAttemptsRes = await (supabase as any)
         .from("attempts")
         .select("vocab_id, score")
         .eq("user_id", userId);
       const allAttempts = allAttemptsRes.data || [];
-      for (const a of allAttempts) {
-        if (a.score == null || !a.vocab_id) continue;
-        const v = vocabMap[a.vocab_id];
-        if (!v) continue;
-        const cat = v.category || "other";
-        if (!categoryMap[cat]) categoryMap[cat] = [];
-        categoryMap[cat].push(a.score);
-      }
-      const catData: CategoryScore[] = Object.entries(categoryMap).map(([category, scores]) => ({
-        category: category.charAt(0).toUpperCase() + category.slice(1),
-        score: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
-        fullMark: 100,
-      }));
-      setCategoryScores(catData);
 
-      // 3. Streak calendar — practiceDaySet already built above
+      // 3. Practice days for the weekly ring are in practiceDaySet above
 
       // 4. Words to review — count where next_review_date <= today
       const todayStr = new Date().toISOString().slice(0, 10);
@@ -230,6 +224,39 @@ const Dashboard = () => {
           total: levelMap[lvl].total,
         }));
       setLevelProgress(lvlData);
+      setHasAnyAttempt(allAttempts.length > 0);
+
+      // 6. Tone accuracy: average score of practised words containing each tone
+      const toneMap: Record<number, { sum: number; n: number }> = { 1: { sum: 0, n: 0 }, 2: { sum: 0, n: 0 }, 3: { sum: 0, n: 0 }, 4: { sum: 0, n: 0 } };
+      for (const a of allAttempts) {
+        if (a.score == null || !a.vocab_id || !vocabMap[a.vocab_id]) continue;
+        for (const tone of tonesIn(vocabMap[a.vocab_id].pinyin)) {
+          toneMap[tone].sum += a.score;
+          toneMap[tone].n++;
+        }
+      }
+      setToneScores(
+        ([1, 2, 3, 4] as const).map((tone) => ({
+          tone,
+          score: toneMap[tone].n ? Math.round(toneMap[tone].sum / toneMap[tone].n) : null,
+          words: toneMap[tone].n,
+        })),
+      );
+
+      // 7. Missed words: practised but best score still under 70, weakest first
+      setMissedWords(
+        Object.entries(vocabBestScore)
+          .filter(([id, best]) => best < 70 && vocabMap[id])
+          .sort(([, a], [, b]) => a - b)
+          .slice(0, 6)
+          .map(([id, best]) => ({
+            id,
+            hanzi: vocabMap[id].hanzi,
+            pinyin: vocabMap[id].pinyin,
+            arabic: vocabMap[id].arabic_translation,
+            best: Math.round(best),
+          })),
+      );
     } catch (e) {
       console.error("Student dashboard load error:", e);
     }
@@ -370,31 +397,14 @@ const Dashboard = () => {
   // ──────────────────────────────────────────
   //  Streak calendar helper — last 30 days
   // ──────────────────────────────────────────
-  const buildCalendarDays = () => {
-    const days: { date: string; label: string; practiced: boolean; isToday: boolean }[] = [];
-    const today = new Date();
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      const iso = d.toISOString().slice(0, 10);
-      const dayNum = d.getDate();
-      days.push({
-        date: iso,
-        label: String(dayNum),
-        practiced: practiceDays.has(iso),
-        isToday: i === 0,
-      });
-    }
-    return days;
-  };
 
   // ──────────────────────────────────────────
   //  Loading state
   // ──────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <div className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+        <Lantern mood="thinking" className="w-36 h-36" />
         <p className="text-muted-foreground">{t("dashboard.loading")}</p>
       </div>
     );
@@ -404,279 +414,54 @@ const Dashboard = () => {
   //  STUDENT VIEW
   // ──────────────────────────────────────────
   if (isStudent) {
-    const calendarDays = buildCalendarDays();
-
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/5 py-8 px-4">
-        <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold bg-gradient-lavender bg-clip-text text-transparent">
-              {t("dashboard.student.title")}
-            </h1>
-            <p className="text-muted-foreground">{t("dashboard.student.subtitle")}</p>
-          </div>
-
-          {/* Summary stat cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="border-2">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t("dashboard.total_xp")}</p>
-                    <p className="text-3xl font-bold">{studentTotalXp}</p>
-                  </div>
-                  <Zap className="w-10 h-10 text-yellow-500" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-2">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t("dashboard.current_streak")}</p>
-                    <p className="text-3xl font-bold">{studentStreak} <span className="text-base font-normal text-muted-foreground">{t("dashboard.days")}</span></p>
-                  </div>
-                  <Flame className="w-10 h-10 text-orange-500" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-2">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t("dashboard.words_learned")}</p>
-                    <p className="text-3xl font-bold">{studentWordsLearned}</p>
-                  </div>
-                  <BookOpen className="w-10 h-10 text-blue-500" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-2">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t("dashboard.avg_score")}</p>
-                    <p className="text-3xl font-bold">{studentAvgScore}%</p>
-                  </div>
-                  <Award className="w-10 h-10 text-green-500" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Row 1: Score progress + Category mastery */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 1. Score progress chart */}
-            <Card className="border-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="text-purple-500" />
-                  {t("dashboard.score_progress")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {dailyScores.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={dailyScores}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                      <XAxis dataKey="date" stroke="#666" fontSize={12} />
-                      <YAxis stroke="#666" domain={[0, 100]} />
-                      <Tooltip
-                        formatter={(value: number) => [`${value}%`, t("dashboard.avg_score_label")]}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="avgScore"
-                        stroke="#a855f7"
-                        strokeWidth={3}
-                        dot={{ fill: "#a855f7", r: 4 }}
-                        activeDot={{ r: 6 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-center text-muted-foreground py-12">
-                    {t("dashboard.score_progress.empty")}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* 2. Category mastery */}
-            <Card className="border-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Award className="text-green-500" />
-                  {t("dashboard.category_mastery")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {categoryScores.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <RadarChart data={categoryScores} cx="50%" cy="50%" outerRadius="70%">
-                      <PolarGrid stroke="#e0e0e0" />
-                      <PolarAngleAxis dataKey="category" stroke="#666" fontSize={12} />
-                      <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#999" fontSize={10} />
-                      <Radar
-                        name="Score"
-                        dataKey="score"
-                        stroke="#10b981"
-                        fill="#10b981"
-                        fillOpacity={0.3}
-                      />
-                      <Tooltip formatter={(value: number) => [`${value}%`, "Score"]} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-center text-muted-foreground py-12">
-                    {t("dashboard.category_mastery.empty")}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Row 2: Streak calendar + Words to review */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 3. Streak calendar */}
-            <Card className="border-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="text-orange-500" />
-                  {t("dashboard.streak_calendar")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-10 gap-2">
-                  {calendarDays.map((day) => (
-                    <div
-                      key={day.date}
-                      className={`
-                        relative w-full aspect-square rounded-md flex items-center justify-center text-xs font-medium
-                        transition-colors
-                        ${day.practiced
-                          ? "bg-green-500 text-white"
-                          : "bg-muted/40 text-muted-foreground"
-                        }
-                        ${day.isToday ? "ring-2 ring-primary ring-offset-1" : ""}
-                      `}
-                      title={`${day.date} — ${day.practiced ? t("dashboard.streak.practiced") : t("dashboard.streak.missed")}`}
-                    >
-                      {day.label}
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm bg-green-500 inline-block" /> {t("dashboard.streak.practiced")}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm bg-muted/40 inline-block border" /> {t("dashboard.streak.missed")}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 4. Words to review widget */}
-            <Card className="border-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="text-blue-500" />
-                  {t("dashboard.words_to_review")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center justify-center py-8 gap-4">
-                {wordsToReview > 0 ? (
-                  <>
-                    <div className="text-6xl font-bold bg-gradient-coral bg-clip-text text-transparent">
-                      {wordsToReview}
-                    </div>
-                    <p className="text-muted-foreground text-center">
-                      {t("dashboard.words_due_today")}
-                    </p>
-                    <Button
-                      onClick={() => navigate("/flashcards")}
-                      className="bg-gradient-coral text-white px-8"
-                    >
-                      {t("dashboard.start_review")}
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-5xl">&#10003;</div>
-                    <p className="text-muted-foreground text-center">
-                      {t("dashboard.no_reviews_due")}
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Row 3: Level progress */}
-          <Card className="border-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="text-purple-500" />
-                {t("dashboard.level_progress")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {levelProgress.length > 0 ? (
-                <div className="space-y-4">
-                  {levelProgress.map((lp) => {
-                    const pct = lp.total > 0 ? Math.round((lp.mastered / lp.total) * 100) : 0;
-                    return (
-                      <div key={lp.level} className="space-y-1">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="font-medium">
-                            {t(`common.${lp.level}`)}
-                          </span>
-                          <span className="text-muted-foreground">
-                            {lp.mastered}/{lp.total} {t("dashboard.mastered")}
-                          </span>
-                        </div>
-                        <div className="w-full h-4 bg-muted/40 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-12">
-                  {t("dashboard.level_progress.empty")}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
+    const today = new Date();
+    const week = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - (6 - i));
+      const iso = d.toISOString().slice(0, 10);
+      return { date: iso, practiced: practiceDays.has(iso), isToday: i === 6 };
+    });
+    const totalMastered = levelProgress.reduce((n, l) => n + l.mastered, 0);
+    const scoredTones = toneScores.filter((x) => x.score != null);
+    const data: StudentDashboardData = {
+      name: profile?.full_name ?? "",
+      totalXp: studentTotalXp,
+      streak: studentStreak,
+      wordsLearned: studentWordsLearned,
+      week,
+      tones: toneScores,
+      missed: missedWords,
+      levels: levelProgress,
+      dailyScores,
+      wordsToReview,
+      badges: [
+        { seal: "始", key: "dash2.badge.first", earned: hasAnyAttempt },
+        { seal: "七", key: "dash2.badge.streak7", earned: studentStreak >= 7 },
+        { seal: "百", key: "dash2.badge.xp100", earned: studentTotalXp >= 100 },
+        { seal: "十", key: "dash2.badge.master10", earned: totalMastered >= 10 },
+        { seal: "声", key: "dash2.badge.tones", earned: scoredTones.length === 4 && scoredTones.every((x) => (x.score ?? 0) >= 80) },
+        { seal: "满", key: "dash2.badge.level", earned: levelProgress.some((l) => l.total > 0 && l.mastered >= l.total) },
+      ],
+    };
+    return <StudentDashboard data={data} />;
   }
 
   // ──────────────────────────────────────────
-  //  TEACHER VIEW  (original, unchanged)
+  //  TEACHER VIEW
   // ──────────────────────────────────────────
   if (!classroomCode) {
     return (
-      <div className="min-h-screen py-12 px-4 flex items-center justify-center">
-        <Card className="max-w-md w-full p-8">
-          <h1 className="text-2xl font-bold mb-4">{t("dashboard.create_classroom")}</h1>
-          <p className="text-muted-foreground mb-6">
-            {t("dashboard.create_classroom_desc")}
-          </p>
+      <div className="container mx-auto max-w-md px-4 py-12">
+        <Card className="p-8 flex flex-col items-center text-center gap-4">
+          <Lantern mood="idle" className="w-28 h-28" />
+          <h1 className="text-2xl font-bold">{t("dashboard.create_classroom")}</h1>
+          <p className="text-muted-foreground">{t("dashboard.create_classroom_desc")}</p>
           <Input
             placeholder={t("dashboard.classroom_name_placeholder")}
             value={classroomName}
             onChange={(e) => setClassroomName(e.target.value)}
-            className="mb-4"
           />
-          <Button onClick={handleCreateClassroom} className="w-full bg-gradient-coral">
+          <Button onClick={handleCreateClassroom} className="w-full" size="lg">
             {t("dashboard.create_button")}
           </Button>
         </Card>
@@ -690,176 +475,165 @@ const Dashboard = () => {
   }));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/5 py-8 px-4">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-lavender bg-clip-text text-transparent">
-              {t("dashboard.teacher.title")}
-            </h1>
-            <p className="text-muted-foreground">{t("dashboard.teacher.subtitle")}</p>
-          </div>
-          <div className="flex items-center gap-2 bg-muted/50 px-4 py-2 rounded-lg">
-            <span className="text-sm text-muted-foreground">{t("dashboard.classroom_code")}:</span>
-            <span className="font-mono font-bold text-lg">{classroomCode}</span>
-            <Button variant="ghost" size="icon" onClick={copyCode}>
-              <Copy className="w-4 h-4" />
-            </Button>
-          </div>
+    <div className="container mx-auto max-w-6xl px-4 py-8 flex flex-col gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold">{t("dashboard.teacher.title")}</h1>
+          <p className="text-muted-foreground mt-1">{t("dashboard.teacher.subtitle")}</p>
         </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border-2">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">{t("dashboard.active_students")}</p>
-                  <p className="text-3xl font-bold">{students.length}</p>
-                </div>
-                <Users className="w-12 h-12 text-purple-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-2">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">{t("dashboard.avg_score")}</p>
-                  <p className="text-3xl font-bold">{avgScore}%</p>
-                </div>
-                <Award className="w-12 h-12 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-2">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">{t("dashboard.total_practice")}</p>
-                  <p className="text-3xl font-bold">{totalAttempts}</p>
-                </div>
-                <TrendingUp className="w-12 h-12 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex items-center gap-3 rounded-[10px] border-2 border-stroke bg-card px-4 py-2">
+          <span className="text-sm text-muted-foreground">{t("dashboard.classroom_code")}</span>
+          <span className="font-bold text-lg tracking-widest" dir="ltr">{classroomCode}</span>
+          <Button variant="outline" size="sm" onClick={copyCode}>{t("dashboard.copy")}</Button>
         </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="text-purple-500" />
-                {t("dashboard.accuracy_over_time")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {weeklyScores.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={weeklyScores}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                    <XAxis dataKey="week" stroke="#666" />
-                    <YAxis stroke="#666" domain={[0, 100]} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="score" stroke="#a855f7" strokeWidth={3} dot={{ fill: "#a855f7", r: 6 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-center text-muted-foreground py-12">{t("dashboard.no_data")}</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Award className="text-green-500" />
-                {t("dashboard.sessions_per_student")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {studentChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={studentChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                    <XAxis dataKey="name" stroke="#666" />
-                    <YAxis stroke="#666" />
-                    <Tooltip />
-                    <Bar dataKey="words" fill="#10b981" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-center text-muted-foreground py-12">{t("dashboard.no_students")}</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {difficultWords.length > 0 && (
-          <Card className="border-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="text-orange-500" />
-                {t("dashboard.most_difficult")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {difficultWords.map((word, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-lg font-bold text-orange-600">
-                        {idx + 1}
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{word.hanzi}</p>
-                        <p className="text-sm text-muted-foreground">{word.pinyin}</p>
-                      </div>
-                    </div>
-                    <div className="text-end">
-                      <p className="text-sm text-muted-foreground">{word.attempts} {t("dashboard.attempts")}</p>
-                      <p className="text-lg font-bold text-orange-500">{word.avgScore}% {t("dashboard.avg_label")}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {students.length > 0 && (
-          <Card className="border-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="text-purple-500" />
-                {t("dashboard.students")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {students.map((student) => (
-                  <div key={student.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
-                    <div>
-                      <p className="font-medium">{student.full_name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {student.attempt_count} {t("dashboard.sessions")} | {t("dashboard.avg_label")}: {student.avg_score}%
-                      </p>
-                    </div>
-                    <div className="text-end">
-                      <p className="font-bold text-sm bg-gradient-coral bg-clip-text text-transparent">
-                        {student.total_xp} XP
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
+
+      <StatStrip
+        stats={[
+          { label: t("dashboard.active_students"), value: students.length },
+          { label: t("dashboard.avg_score"), value: `${avgScore}%` },
+          { label: t("dashboard.total_practice"), value: totalAttempts },
+        ]}
+      />
+
+      {students.length === 0 && (
+        <Card className="p-6 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-start">
+          <Lantern mood="sleepy" className="w-28 h-28 shrink-0" />
+          <div className="flex flex-col gap-2">
+            <h2 className="text-2xl font-bold">{t("dashboard.no_students")}</h2>
+            <p className="text-muted-foreground max-w-md">{t("dashboard.no_students.desc")}</p>
+          </div>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Section seal="进" title={t("dashboard.accuracy_over_time")}>
+          {weeklyScores.length > 0 ? (
+            <div dir="ltr"><ResponsiveContainer width="100%" height={250}>
+              <LineChart data={weeklyScores}>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="week" stroke={CHART.axis} fontSize={12} />
+                <YAxis stroke={CHART.axis} domain={[0, 100]} fontSize={12} />
+                <Tooltip contentStyle={CHART.tooltip} />
+                <Line type="monotone" dataKey="score" stroke={CHART.primary} strokeWidth={3} dot={{ fill: CHART.primary, r: 5 }} />
+              </LineChart>
+            </ResponsiveContainer></div>
+          ) : (
+            <EmptyNote>{t("dashboard.no_data")}</EmptyNote>
+          )}
+        </Section>
+
+        <Section seal="练" title={t("dashboard.sessions_per_student")}>
+          {studentChartData.length > 0 ? (
+            <div dir="ltr"><ResponsiveContainer width="100%" height={250}>
+              <BarChart data={studentChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="name" stroke={CHART.axis} fontSize={12} />
+                <YAxis stroke={CHART.axis} fontSize={12} />
+                <Tooltip contentStyle={CHART.tooltip} cursor={{ fill: CHART.cursor }} />
+                <Bar dataKey="words" fill={CHART.primary} radius={[6, 6, 0, 0]} maxBarSize={56} />
+              </BarChart>
+            </ResponsiveContainer></div>
+          ) : (
+            <EmptyNote>{t("dashboard.no_students")}</EmptyNote>
+          )}
+        </Section>
+      </div>
+
+      {difficultWords.length > 0 && (
+        <Section seal="难" title={t("dashboard.most_difficult")}>
+          <ol className="flex flex-col border-2 border-border rounded-[10px] overflow-hidden">
+            {difficultWords.map((word, idx) => (
+              <li key={idx} className="flex items-center justify-between gap-4 p-4 border-b-2 border-border last:border-b-0">
+                <div className="flex items-center gap-4">
+                  <span className="w-9 h-9 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-bold tabular-nums">
+                    {idx + 1}
+                  </span>
+                  <div>
+                    <p lang="zh" className="font-zh text-2xl font-bold">{word.hanzi}</p>
+                    <p className="font-pinyin text-sm text-primary font-bold">{word.pinyin}</p>
+                  </div>
+                </div>
+                <div className="text-end">
+                  <p className="text-sm text-muted-foreground">{word.attempts} {t("dashboard.attempts")}</p>
+                  <p className="text-lg font-bold">{word.avgScore}% {t("dashboard.avg_label")}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </Section>
+      )}
+
+      {students.length > 0 && (
+        <Section seal="生" title={t("dashboard.students")}>
+          <ul className="flex flex-col border-2 border-border rounded-[10px] overflow-hidden">
+            {students.map((student) => (
+              <li key={student.id} className="flex items-center justify-between gap-4 p-3 border-b-2 border-border last:border-b-0">
+                <div>
+                  <p className="font-bold">{student.full_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {student.attempt_count} {t("dashboard.sessions")} · {t("dashboard.avg_label")} {student.avg_score}%
+                  </p>
+                </div>
+                <span className="font-bold text-sm text-primary tabular-nums" dir="ltr">{student.total_xp} XP</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
     </div>
   );
 };
+
+/* Chart colours come from the theme tokens so they follow light and dark mode */
+const CHART = {
+  primary: "hsl(var(--primary))",
+  success: "hsl(var(--success))",
+  grid: "hsl(var(--border))",
+  axis: "hsl(var(--muted-foreground))",
+  cursor: "hsl(var(--muted))",
+  tooltip: {
+    background: "hsl(var(--card))",
+    border: "2px solid hsl(var(--stroke))",
+    borderRadius: 10,
+    color: "hsl(var(--foreground))",
+  },
+};
+
+const Section = ({ seal, title, children }: { seal: string; title: string; children: React.ReactNode }) => (
+  <Card className="p-5 md:p-6 flex flex-col gap-4">
+    <h2 className="flex items-center gap-3 text-xl font-bold">
+      <Seal char={seal} size="sm" />
+      {title}
+    </h2>
+    {children}
+  </Card>
+);
+
+const EmptyNote = ({ children }: { children: React.ReactNode }) => (
+  <p className="text-center text-muted-foreground py-10 max-w-sm mx-auto">{children}</p>
+);
+
+/* Headline numbers in one strip rather than a row of separate cards */
+const StatStrip = ({ stats }: { stats: { label: string; value: number | string; unit?: string }[] }) => (
+  <Card className="p-0 overflow-hidden">
+    <dl className={`grid grid-cols-2 ${stats.length === 4 ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+      {stats.map((s, i) => (
+        <div
+          key={s.label}
+          className={`p-4 md:p-5 border-border ${i % 2 === 0 ? "border-e-2" : ""} ${i >= 2 ? "border-t-2 md:border-t-0" : ""} ${
+            i < stats.length - 1 ? "md:border-e-2" : "md:border-e-0"
+          } ${stats.length === 3 && i === 2 ? "col-span-2 md:col-span-1" : ""}`}
+        >
+          <dt className="text-sm text-muted-foreground">{s.label}</dt>
+          <dd className="text-3xl font-bold tabular-nums">
+            {s.value}
+            {s.unit && <span className="ms-1 text-base font-normal text-muted-foreground">{s.unit}</span>}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  </Card>
+);
 
 export default Dashboard;

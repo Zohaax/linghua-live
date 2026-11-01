@@ -52,6 +52,28 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          soft: "hsl(var(--success-soft))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        stroke: "hsl(var(--stroke))",
+        header: {
+          DEFAULT: "hsl(var(--header))",
+          foreground: "hsl(var(--header-foreground))",
+          hover: "hsl(var(--header-hover))",
+        },
+        footer: {
+          DEFAULT: "hsl(var(--footer))",
+          foreground: "hsl(var(--footer-foreground))",
+          muted: "hsl(var(--footer-muted))",
+        },
+        stamp: "hsl(var(--stamp))",
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)"],
+        zh: ["var(--font-zh)"],
+        pinyin: ["var(--font-pinyin)"],
       },
       backgroundImage: {
         'gradient-coral': 'var(--gradient-coral)',
@@ -62,6 +84,8 @@ export default {
       boxShadow: {
         'soft': 'var(--shadow-soft)',
         'glow': 'var(--shadow-glow)',
+        'stamp': '5px 5px 0 hsl(var(--stamp))',
+        'stamp-sm': '3px 3px 0 hsl(var(--stamp))',
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -7,59 +7,135 @@ All colors MUST be HSL.
 */
 
 @layer base {
+  /* Red Seal: ink outlines, solid stamp shadows, lantern red and gold. */
   :root {
-    /* Vibrant red Chinese-inspired palette */
-    --background: 0 20% 97%;
-    --foreground: 220 30% 25%;
+    /* Blush page lit by the lantern glow, so white cards stand out */
+    --background: 5 75% 96%;
+    --foreground: 16 19% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 30% 25%;
+    --card-foreground: 16 19% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 25%;
+    --popover-foreground: 16 19% 11%;
 
-    /* Vibrant red primary */
-    --primary: 0 85% 55%;
+    /* Lantern red */
+    --primary: 4 75% 48%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 0 90% 62%;
+    --primary-glow: 4 75% 48%;
 
-    /* Mint secondary */
-    --secondary: 140 65% 85%;
-    --secondary-foreground: 140 80% 25%;
+    /* Gold, soft */
+    --secondary: 45 100% 88%;
+    --secondary-foreground: 41 100% 21%;
 
-    /* Lavender accent */
-    --accent: 230 55% 85%;
-    --accent-foreground: 230 80% 30%;
+    /* Red, soft */
+    --accent: 10 80% 94%;
+    --accent-foreground: 4 75% 32%;
 
-    /* Gold sunshine */
-    --sunshine: 45 100% 55%;
-    --sunshine-foreground: 45 100% 20%;
+    /* Gold */
+    --sunshine: 40 82% 50%;
+    --sunshine-foreground: 41 100% 11%;
 
-    --muted: 220 20% 93%;
-    --muted-foreground: 220 20% 50%;
+    --muted: 5 45% 93%;
+    --muted-foreground: 18 12% 39%;
 
-    --destructive: 0 85% 60%;
+    /* Warm light the lantern throws on the wall behind it */
+    --lantern-glow: 2 88% 74%;
+
+    --destructive: 4 75% 40%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 30% 88%;
-    --input: 220 30% 88%;
-    --ring: 0 85% 55%;
+    /* Correct answers only, so red never means "right" */
+    --success: 161 63% 33%;
+    --success-soft: 150 48% 91%;
+    --success-foreground: 161 64% 22%;
 
-    --radius: 1rem;
+    --border: 5 35% 87%;
+    --input: 16 19% 11%;
+    --ring: 40 82% 50%;
 
-    /* Gradients */
-    --gradient-coral: linear-gradient(135deg, hsl(0 85% 55%), hsl(350 90% 50%));
-    --gradient-mint: linear-gradient(135deg, hsl(140 65% 85%), hsl(160 70% 80%));
-    --gradient-lavender: linear-gradient(135deg, hsl(230 55% 85%), hsl(250 60% 80%));
-    --gradient-rainbow: linear-gradient(90deg, hsl(0 85% 55%), hsl(140 65% 85%), hsl(230 55% 85%), hsl(45 100% 55%));
+    /* Outline and offset shadow that give every card and button its stamped look */
+    --stroke: 16 19% 11%;
+    --stamp: 16 19% 11%;
 
-    /* Shadows */
-    --shadow-soft: 0 4px 20px -4px hsl(0 85% 55% / 0.3);
-    --shadow-glow: 0 0 30px hsl(0 90% 62% / 0.4);
+    /* Lantern red header with a gold pill for the current page, ink footer */
+    --header: 4 75% 48%;
+    --header-foreground: 0 0% 100%;
+    --header-hover: 4 75% 42%;
+    --footer: 16 19% 11%;
+    --footer-foreground: 33 41% 95%;
+    --footer-muted: 30 15% 70%;
 
-    /* Animations */
-    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --radius: 0.875rem;
+
+    /* Kept for existing class names; all solid now, no rainbow */
+    --gradient-coral: linear-gradient(hsl(var(--primary)), hsl(var(--primary)));
+    --gradient-mint: linear-gradient(hsl(var(--secondary)), hsl(var(--secondary)));
+    --gradient-lavender: linear-gradient(hsl(var(--accent)), hsl(var(--accent)));
+    --gradient-rainbow: linear-gradient(hsl(var(--primary)), hsl(var(--primary)));
+
+    --shadow-soft: 3px 3px 0 hsl(var(--stamp));
+    --shadow-glow: 5px 5px 0 hsl(var(--stamp));
+
+    --font-sans: "Baloo Bhaijaan 2", "Segoe UI", "Geeza Pro", system-ui, sans-serif;
+    /* Baloo draws some pinyin tone marks (ī, ǜ) detached, so pinyin uses Nunito */
+    --font-pinyin: "Nunito", "Segoe UI", system-ui, sans-serif;
+    --font-zh: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
   }
+
+  /* Burgundy velvet: maroon page and cards, soft gold outlines */
+  .dark {
+    --background: 352 45% 17%;
+    --foreground: 33 90% 94%;
+
+    --card: 352 38% 23%;
+    --card-foreground: 33 90% 94%;
+
+    --popover: 352 38% 23%;
+    --popover-foreground: 33 90% 94%;
+
+    --primary: 5 100% 64%;
+    --primary-foreground: 0 68% 7%;
+    --primary-glow: 5 100% 64%;
+
+    --secondary: 37 64% 18%;
+    --secondary-foreground: 43 100% 73%;
+
+    --accent: 352 36% 28%;
+    --accent-foreground: 7 100% 75%;
+
+    --sunshine: 41 89% 63%;
+    --sunshine-foreground: 41 100% 11%;
+
+    --muted: 352 30% 29%;
+    --muted-foreground: 20 35% 80%;
+
+    /* Amber, so the glow still reads against the maroon page */
+    --lantern-glow: 25 95% 58%;
+
+    --destructive: 5 100% 64%;
+    --destructive-foreground: 0 68% 7%;
+
+    --success: 158 55% 59%;
+    --success-soft: 162 53% 15%;
+    --success-foreground: 159 72% 72%;
+
+    --border: 352 30% 31%;
+    --input: 40 75% 70%;
+    --ring: 41 89% 63%;
+
+    --stroke: 40 75% 70%;
+    --stamp: 352 55% 7%;
+
+    --header: 352 55% 12%;
+    --header-foreground: 33 90% 94%;
+    --header-hover: 352 45% 20%;
+    --footer: 352 55% 9%;
+    --footer-foreground: 33 90% 94%;
+    --footer-muted: 20 30% 70%;
+  }
+
+
 }
 
 @layer base {
@@ -69,7 +145,15 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Nunito', 'Arial', sans-serif;
+    /* Soft lantern light washing down from the top of the page (light mode) */
+    background-image: radial-gradient(130% 75% at 50% 0%, hsl(var(--lantern-glow) / 0.22), transparent 70%);
+    background-attachment: fixed;
+    font-family: var(--font-sans);
+  }
+
+  [lang="zh"],
+  .chinese-text {
+    font-family: var(--font-zh);
   }
 
   /* RTL Support */
@@ -131,5 +215,51 @@ All colors MUST be HSL.
 
   .animate-wiggle {
     animation: wiggle 0.5s ease-in-out;
+  }
+}
+
+/* Soft, diffuse light behind the lantern. Wrap the lantern in an element with
+   this class; tune --glow-size and --glow-y per placement. Light mode only. */
+@layer components {
+  .lantern-glow {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .lantern-glow::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    left: 50%;
+    top: var(--glow-y, 50%);
+    width: var(--glow-size, 140%);
+    aspect-ratio: 1 / 1.15;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(
+      closest-side,
+      hsl(var(--lantern-glow) / 0.6) 0%,
+      hsl(var(--lantern-glow) / 0.38) 35%,
+      hsl(var(--lantern-glow) / 0.14) 68%,
+      hsl(var(--lantern-glow) / 0) 100%
+    );
+    filter: blur(28px);
+    pointer-events: none;
+  }
+
+  /* At night the lantern glows dimmer and warmer, red into gold */
+  .dark body {
+    background-image: none;
+  }
+
+  .dark .lantern-glow::before {
+    opacity: 0.5;
+    background: radial-gradient(
+      closest-side,
+      hsl(var(--lantern-glow) / 0.55) 0%,
+      hsl(var(--lantern-glow) / 0.3) 40%,
+      hsl(28 90% 50% / 0.1) 70%,
+      hsl(28 90% 50% / 0) 100%
+    );
   }
 }

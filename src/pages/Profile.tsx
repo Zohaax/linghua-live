@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import Seal from "@/components/Seal";
+import { avatarChar } from "@/lib/avatars";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,14 +30,6 @@ interface Badge {
   xp_reward: number;
 }
 
-const AVATAR_MAP: Record<string, string> = {
-  panda: "🐼",
-  dragon: "🐉",
-  phoenix: "🦅",
-  bamboo: "🎋",
-  lotus: "🪷",
-  star: "⭐",
-};
 
 const Profile = () => {
   const { user, profile, joinClassroom } = useAuth();
@@ -131,16 +125,13 @@ const Profile = () => {
     );
   }
 
-  const avatarEmoji = AVATAR_MAP[profile.avatar_url] || "🐼";
 
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="container mx-auto max-w-3xl">
-        <Card className="p-8 mb-6 bg-gradient-to-br from-card to-primary/5 border-2 border-primary/10 shadow-glow">
+        <Card className="p-8 mb-6">
           <div className="flex items-center gap-6">
-            <div className="w-20 h-20 rounded-full bg-gradient-coral flex items-center justify-center text-4xl shadow-glow">
-              {avatarEmoji}
-            </div>
+            <Seal char={avatarChar(profile.avatar_url)} size="lg" className="w-20 h-20 text-4xl rounded-full" />
             <div className="flex-1">
               <h1 className="text-2xl font-bold">{profile.full_name}</h1>
               <p className="text-muted-foreground">{t(`common.${profile.role}`)}</p>
@@ -161,19 +152,19 @@ const Profile = () => {
 
         <div className="grid grid-cols-3 gap-4 mb-6">
           <Card className="p-4 text-center">
-            <div className="text-3xl font-bold bg-gradient-coral bg-clip-text text-transparent">
+            <div className="text-3xl font-bold text-primary">
               {progress.total_xp}
             </div>
             <div className="text-xs text-muted-foreground mt-1">Total XP</div>
           </Card>
           <Card className="p-4 text-center">
-            <div className="text-3xl font-bold bg-gradient-mint bg-clip-text text-transparent">
+            <div className="text-3xl font-bold text-foreground">
               {progress.completed_words}
             </div>
             <div className="text-xs text-muted-foreground mt-1">Words Learned</div>
           </Card>
           <Card className="p-4 text-center">
-            <div className="text-3xl font-bold bg-gradient-lavender bg-clip-text text-transparent">
+            <div className="text-3xl font-bold text-foreground">
               {totalAttempts}
             </div>
             <div className="text-xs text-muted-foreground mt-1">Practice Sessions</div>
@@ -213,7 +204,6 @@ const Profile = () => {
                   <Button
                     onClick={handleJoinClassroom}
                     disabled={joiningClassroom || !classroomCode.trim()}
-                    className="bg-gradient-mint"
                   >
                     {joiningClassroom ? "..." : t("profile.join")}
                   </Button>
