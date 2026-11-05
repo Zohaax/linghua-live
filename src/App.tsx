@@ -24,6 +24,14 @@ import LessonBuilder from "./pages/LessonBuilder";
 import Grammar from "./pages/Grammar";
 import Learn from "./pages/Learn";
 import LessonPlayer from "./pages/LessonPlayer";
+import OnTheMove from "./pages/OnTheMove";
+import Phrasebook from "./pages/Phrasebook";
+import MoveUnit from "./pages/MoveUnit";
+import Etiquette from "./pages/Etiquette";
+import TaxiCard from "./pages/TaxiCard";
+import Numbers from "./pages/Numbers";
+import Trains from "./pages/Trains";
+import Nearby from "./pages/Nearby";
 import Tutor from "./pages/Tutor";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
@@ -60,6 +68,15 @@ const AppRoutes = () => {
         <Route path="/lessons/:id" element={<ProtectedRoute><LessonBuilder /></ProtectedRoute>} />
         <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
         <Route path="/learn/:key" element={<ProtectedRoute><LessonPlayer /></ProtectedRoute>} />
+        <Route path="/move" element={<OnTheMove />} />
+        <Route path="/move/phrases" element={<Phrasebook />} />
+        <Route path="/move/etiquette" element={<Etiquette />} />
+        <Route path="/move/taxi" element={<TaxiCard />} />
+        <Route path="/move/numbers" element={<Numbers />} />
+        <Route path="/move/trains" element={<Trains />} />
+        <Route path="/move/nearby" element={<Nearby />} />
+        <Route path="/move/unit/:unitKey" element={<MoveUnit />} />
+        <Route path="/move/:key" element={<LessonPlayer />} />
         <Route path="/grammar" element={<ProtectedRoute><Grammar /></ProtectedRoute>} />
         <Route path="/tutor" element={<ProtectedRoute><Tutor /></ProtectedRoute>} />
         <Route path="/about" element={<About />} />
