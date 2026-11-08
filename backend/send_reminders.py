@@ -1,8 +1,9 @@
 """
 Hua's daily reminders on the lock screen (web push).
 
-Runs every 15 minutes (GitHub Actions: .github/workflows/hua-reminders.yml, or cron on the
-server). For each learner with reminders on whose local reminder time has just passed and
+Runs every 15 minutes from cron on the server (deploy/linghua-reminders.cron). The GitHub
+workflow .github/workflows/hua-reminders.yml can still run it by hand, but has no schedule:
+the repo is private, and a 15-minute schedule would use up the free Actions minutes. For each learner with reminders on whose local reminder time has just passed and
 who has not reached today's goal, it sends one notification to every device they allowed.
 Each learner gets at most one reminder a day.
 
@@ -81,7 +82,17 @@ class Supabase:
         requests.delete(f"{self.base}/{table}", headers=self.headers, params=params, timeout=20)
 
 
+def _load_server_env() -> None:
+    """On the server, read the secrets from backend/.env (written by update.sh)."""
+    try:
+        from dotenv import load_dotenv
+    except ImportError:  # GitHub workflow: secrets come from the environment
+        return
+    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+
+
 def main() -> int:
+    _load_server_env()
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     vapid_key = os.environ.get("VAPID_PRIVATE_KEY")

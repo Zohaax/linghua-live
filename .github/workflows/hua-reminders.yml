@@ -1,11 +1,11 @@
 name: Hua reminders
 
-# Sends Hua's daily lock-screen reminders (backend/send_reminders.py).
-# Does nothing until the secrets below are added in Settings > Secrets and variables > Actions:
+# Sends Hua's daily lock-screen reminders (backend/send_reminders.py) by hand only.
+# The every-15-minutes run now happens on the server (deploy/linghua-reminders.cron),
+# because the repo is private and a schedule here would use up the free Actions minutes.
+# Needs these in Settings > Secrets and variables > Actions to work:
 #   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
 on:
-  schedule:
-    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 concurrency:

@@ -1,0 +1,7 @@
+# Hua's lock-screen reminders, every 15 minutes (backend/send_reminders.py).
+# Install once on the server:
+#   sudo cp deploy/linghua-reminders.cron /etc/cron.d/linghua-reminders
+# Change /home/hazim/LingHua below if LingHua is installed somewhere else.
+# Output goes to the system log:  journalctl -t linghua-reminders
+SHELL=/bin/sh
+*/15 * * * * www-data /home/hazim/LingHua/backend/venv/bin/python /home/hazim/LingHua/backend/send_reminders.py 2>&1 | logger -t linghua-reminders
