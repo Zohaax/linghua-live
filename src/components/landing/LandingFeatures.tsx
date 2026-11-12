@@ -73,7 +73,7 @@ const FHead = ({ plain, gold, ways }: { plain: string; gold: string; ways?: bool
           <Fragment key={i}><span className="w" style={{ "--i": i } as React.CSSProperties}>{w}</span>{" "}</Fragment>
         ))}
         <span className="w" style={{ "--i": plain.split(" ").length } as React.CSSProperties}>
-          <span className="gold">{gold}</span>
+          <span className="gold" data-t={gold}>{gold}</span>
         </span>
       </span>
     </h2>

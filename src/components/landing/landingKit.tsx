@@ -58,7 +58,7 @@ export const TypeIn = ({ plain, red, start }: { plain: string; red: string; star
 
   const space = plain && !plain.endsWith(" ") ? " " : "";
   if (i === -1) {
-    return <>{plain}{space}<span className="hl glow">{red}</span></>;
+    return <>{plain}{space}<span className="hl glow" data-t={red}>{red}</span></>;
   }
   const caret = <span className="caret" />;
   if (i <= plain.length) {

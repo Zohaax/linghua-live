@@ -145,10 +145,18 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    /* Soft lantern light washing down from the top of the page (light mode) */
-    background-image: radial-gradient(130% 75% at 50% 0%, hsl(var(--lantern-glow) / 0.22), transparent 70%);
-    background-attachment: fixed;
     font-family: var(--font-sans);
+  }
+
+  /* Soft lantern light washing down from the top of the screen (light mode).
+     A fixed layer instead of a fixed background, so scrolling never repaints the whole page. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(130% 75% at 50% 0%, hsl(var(--lantern-glow) / 0.22), transparent 70%);
   }
 
   [lang="zh"],
@@ -253,8 +261,8 @@ All colors MUST be HSL.
   }
 
   /* At night the lantern glows dimmer and warmer, red into gold */
-  .dark body {
-    background-image: none;
+  .dark body::before {
+    display: none;
   }
 
   .dark .lantern-glow::before {

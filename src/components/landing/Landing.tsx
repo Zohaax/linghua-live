@@ -37,14 +37,18 @@ const Landing = () => {
   const [lit, setLit] = useState(-1);
   const [pressed, setPressed] = useState(false);
 
-  // Scroll drives both scenes, so they play forwards and backwards smoothly
+  // Scroll drives both scenes, so they play forwards and backwards smoothly.
+  // Only opacity and transform change, on elements that sit on their own layers, and nothing is written
+  // when a scene's progress hasn't changed, so scrolling stays light even on older phones.
   useEffect(() => {
     const root = rootRef.current, p1 = pin1.current, p2 = pin2.current;
     if (!root || !p1 || !p2) return;
     const still = prefersLessMotion();
-    const in1 = p1.firstElementChild as HTMLElement, in2 = p2.firstElementChild as HTMLElement;
-    const lamps = Array.from(in2.querySelectorAll<HTMLElement>(".lsky i"));
-    let nav = 64, vh = 600, desk = false;
+    const q1 = (el: Element, sel: string) => el.querySelector(sel) as HTMLElement;
+    const s1 = { glow: q1(p1, ".lglow"), halo: q1(p1, ".lhalo"), hua: q1(p1, ".lhua"), title: q1(p1, ".ltitle"), card: q1(p1, ".lcard") };
+    const s2 = { night: q1(p2, ".lnight"), glow: q1(p2, ".lglow"), halo: q1(p2, ".lhalo"), hua: q1(p2, ".lhua"), end: q1(p2, ".lend") };
+    const lamps = Array.from(p2.querySelectorAll<HTMLElement>(".lsky i"));
+    let nav = 64, vh = 600, desk = false, last1 = -1, last2 = -1;
 
     const size = () => {
       nav = (document.querySelector("nav") as HTMLElement | null)?.offsetHeight ?? 64;
@@ -54,38 +58,58 @@ const Landing = () => {
       root.style.setProperty("--l-nav", `${nav}px`);
       root.style.setProperty("--l-vh", `${vh}px`);
       root.style.setProperty("--l-hw", `${hw}px`);
+      last1 = last2 = -1;
     };
+    // progress through a scene, from 0 to 1, and whether it is on screen at all
     const prog = (pin: HTMLElement) => {
-      if (still) return 1;
       const r = pin.getBoundingClientRect();
-      return clamp01((nav - r.top) / (r.height - vh));
+      const live = r.bottom > 0 && r.top < window.innerHeight;
+      pin.classList.toggle("live", live);
+      return still ? 1 : clamp01((nav - r.top) / (r.height - vh));
+    };
+    // y is where his centre sits, as a share of the scene's height
+    const place = (el: HTMLElement, y: number, scale = 1) => {
+      el.style.transform = `translate(-50%, -50%) translate3d(0, ${((y - 0.5) * vh).toFixed(1)}px, 0) scale(${scale.toFixed(3)})`;
     };
     const frame = () => {
       // scene 1: welcome, light up, the word appears in his light
-      const p = prog(p1), s = in1.style;
-      const a = seg(p, 0, 0.22), m = seg(p, 0.06, 0.38), b = seg(p, 0.04, 0.5);
-      s.setProperty("--a", String(a));
-      s.setProperty("--hy", `${desk ? 60 - 18 * m : 58 - 22 * m}%`);
-      s.setProperty("--go", String(0.35 + 0.65 * b));
-      s.setProperty("--gs", String(0.75 + 0.55 * b));
-      s.setProperty("--hf", `brightness(${(0.94 + 0.12 * b).toFixed(3)}) drop-shadow(0 0 ${(b * 26).toFixed(1)}px hsl(40 95% 62% / ${(b * 0.9).toFixed(2)}))`);
-      s.setProperty("--c1", String(seg(p, 0.42, 0.52)));
-      s.setProperty("--c2", String(seg(p, 0.54, 0.64)));
-      s.setProperty("--c3", String(seg(p, 0.66, 0.76)));
-      s.setProperty("--c4", String(seg(p, 0.78, 0.88)));
+      const p = prog(p1);
+      if (p !== last1) {
+        last1 = p;
+        const a = seg(p, 0, 0.22), m = seg(p, 0.06, 0.38), b = seg(p, 0.04, 0.5);
+        const y = (desk ? 60 - 18 * m : 58 - 22 * m) / 100;
+        s1.title.style.opacity = String(1 - a);
+        s1.title.style.transform = `translate3d(0, ${(-40 * a).toFixed(1)}px, 0)`;
+        place(s1.hua, y);
+        place(s1.glow, y, 0.75 + 0.55 * b);
+        s1.glow.style.opacity = String(0.35 + 0.65 * b);
+        place(s1.halo, y, 0.8 + 0.3 * b);
+        s1.halo.style.opacity = String(b);
+        const c = s1.card.style;
+        c.setProperty("--c1", String(seg(p, 0.42, 0.52)));
+        c.setProperty("--c2", String(seg(p, 0.54, 0.64)));
+        c.setProperty("--c3", String(seg(p, 0.66, 0.76)));
+        c.setProperty("--c4", String(seg(p, 0.78, 0.88)));
+      }
       // scene 2: night falls, sky lanterns rise around him
-      const q = prog(p2), u = in2.style, n = seg(q, 0, 0.35);
-      u.setProperty("--n", (0.96 * n).toFixed(3));
-      u.setProperty("--hy", desk ? "40%" : "38%");
-      u.setProperty("--go", String(0.5 + 0.5 * n));
-      u.setProperty("--gs", String(0.9 + 0.7 * n));
-      u.setProperty("--hf", `brightness(${(1 + 0.1 * n).toFixed(3)}) drop-shadow(0 0 ${(14 + n * 22).toFixed(1)}px hsl(40 95% 62% / ${(0.5 + 0.45 * n).toFixed(2)}))`);
-      u.setProperty("--e", String(seg(q, 0.55, 0.72)));
-      lamps.forEach((l) => {
-        const k = seg(q, 0.15 + Number(l.dataset.d), 1);
-        l.style.setProperty("--lo", (Math.min(1, k * 5) * (1 - seg(k, 0.85, 1))).toFixed(3));
-        l.style.setProperty("--ly", (k * vh * 0.95 * Number(l.dataset.s)).toFixed(1));
-      });
+      const q = prog(p2);
+      if (q !== last2) {
+        last2 = q;
+        const n = seg(q, 0, 0.35), e = seg(q, 0.55, 0.72), y = desk ? 0.4 : 0.38;
+        s2.night.style.opacity = (0.96 * n).toFixed(3);
+        place(s2.hua, y);
+        place(s2.glow, y, 0.9 + 0.7 * n);
+        s2.glow.style.opacity = String(0.5 + 0.5 * n);
+        place(s2.halo, y, 1 + 0.35 * n);
+        s2.halo.style.opacity = String(0.6 + 0.4 * n);
+        s2.end.style.opacity = String(e);
+        s2.end.style.transform = `translate3d(0, ${((1 - e) * 20).toFixed(1)}px, 0)`;
+        lamps.forEach((l) => {
+          const k = seg(q, 0.15 + Number(l.dataset.d), 1);
+          l.style.opacity = (Math.min(1, k * 5) * (1 - seg(k, 0.85, 1))).toFixed(3);
+          l.style.transform = `translate3d(0, ${(-k * vh * 0.95 * Number(l.dataset.s)).toFixed(1)}px, 0)`;
+        });
+      }
     };
     let raf = 0;
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; frame(); }); };
@@ -128,6 +152,7 @@ const Landing = () => {
       <section className="pin pin1" ref={pin1}>
         <div className="pin-in">
           <div className="lglow" />
+          <div className="lhalo" />
           <div className="ltitle">
             <h1>{t("home.hero.title")}</h1>
             <p>{t("land.hero.sub")}</p>
@@ -162,6 +187,7 @@ const Landing = () => {
             ))}
           </div>
           <div className="lglow" />
+          <div className="lhalo" />
           <div className="lhua">
             <div className="lfloat"><Lantern mood="happy" /></div>
           </div>
