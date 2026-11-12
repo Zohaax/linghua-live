@@ -38,15 +38,16 @@ const Landing = () => {
   const [pressed, setPressed] = useState(false);
 
   // Scroll drives both scenes, so they play forwards and backwards smoothly.
-  // Only opacity and transform change, on elements that sit on their own layers, and nothing is written
-  // when a scene's progress hasn't changed, so scrolling stays light even on older phones.
+  // Where the browser can tie animations to scrolling itself (Chrome, Edge, Safari 26+), the CSS does it all
+  // and this script only measures sizes. Elsewhere it moves the same layers, changing only opacity and transform.
   useEffect(() => {
     const root = rootRef.current, p1 = pin1.current, p2 = pin2.current;
     if (!root || !p1 || !p2) return;
     const still = prefersLessMotion();
+    const native = !still && typeof CSS !== "undefined" && CSS.supports?.("animation-timeline: view()");
     const q1 = (el: Element, sel: string) => el.querySelector(sel) as HTMLElement;
-    const s1 = { glow: q1(p1, ".lglow"), halo: q1(p1, ".lhalo"), hua: q1(p1, ".lhua"), title: q1(p1, ".ltitle"), card: q1(p1, ".lcard") };
-    const s2 = { night: q1(p2, ".lnight"), glow: q1(p2, ".lglow"), halo: q1(p2, ".lhalo"), hua: q1(p2, ".lhua"), end: q1(p2, ".lend") };
+    const s1 = { stage: q1(p1, ".lstage"), glow: q1(p1, ".lglow"), halo: q1(p1, ".lhalo"), title: q1(p1, ".ltitle"), card: q1(p1, ".lcard") };
+    const s2 = { night: q1(p2, ".lnight"), glow: q1(p2, ".lglow"), halo: q1(p2, ".lhalo"), end: q1(p2, ".lend") };
     const lamps = Array.from(p2.querySelectorAll<HTMLElement>(".lsky i"));
     let nav = 64, vh = 600, desk = false, last1 = -1, last2 = -1;
 
@@ -60,16 +61,21 @@ const Landing = () => {
       root.style.setProperty("--l-hw", `${hw}px`);
       last1 = last2 = -1;
     };
-    // progress through a scene, from 0 to 1, and whether it is on screen at all
+
+    // a scene that is off screen pauses its looping animations
+    const io = "IntersectionObserver" in window
+      ? new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle("live", e.isIntersecting)))
+      : null;
+    [p1, p2].forEach((pin) => (io ? io.observe(pin) : pin.classList.add("live")));
+
     const prog = (pin: HTMLElement) => {
+      if (still) return 1;
       const r = pin.getBoundingClientRect();
-      const live = r.bottom > 0 && r.top < window.innerHeight;
-      pin.classList.toggle("live", live);
-      return still ? 1 : clamp01((nav - r.top) / (r.height - vh));
+      return clamp01((nav - r.top) / (r.height - vh));
     };
-    // y is where his centre sits, as a share of the scene's height
-    const place = (el: HTMLElement, y: number, scale = 1) => {
-      el.style.transform = `translate(-50%, -50%) translate3d(0, ${((y - 0.5) * vh).toFixed(1)}px, 0) scale(${scale.toFixed(3)})`;
+    const scale = (el: HTMLElement, k: number, o: number) => {
+      el.style.transform = `translate(-50%, -50%) scale(${k.toFixed(3)})`;
+      el.style.opacity = o.toFixed(3);
     };
     const frame = () => {
       // scene 1: welcome, light up, the word appears in his light
@@ -77,14 +83,12 @@ const Landing = () => {
       if (p !== last1) {
         last1 = p;
         const a = seg(p, 0, 0.22), m = seg(p, 0.06, 0.38), b = seg(p, 0.04, 0.5);
-        const y = (desk ? 60 - 18 * m : 58 - 22 * m) / 100;
+        const y = desk ? 0.1 - 0.18 * m : 0.08 - 0.22 * m;
         s1.title.style.opacity = String(1 - a);
         s1.title.style.transform = `translate3d(0, ${(-40 * a).toFixed(1)}px, 0)`;
-        place(s1.hua, y);
-        place(s1.glow, y, 0.75 + 0.55 * b);
-        s1.glow.style.opacity = String(0.35 + 0.65 * b);
-        place(s1.halo, y, 0.8 + 0.3 * b);
-        s1.halo.style.opacity = String(b);
+        s1.stage.style.transform = `translate3d(0, ${(y * vh).toFixed(1)}px, 0)`;
+        scale(s1.glow, 0.75 + 0.55 * b, 0.35 + 0.65 * b);
+        scale(s1.halo, 0.8 + 0.3 * b, b);
         const c = s1.card.style;
         c.setProperty("--c1", String(seg(p, 0.42, 0.52)));
         c.setProperty("--c2", String(seg(p, 0.54, 0.64)));
@@ -95,13 +99,10 @@ const Landing = () => {
       const q = prog(p2);
       if (q !== last2) {
         last2 = q;
-        const n = seg(q, 0, 0.35), e = seg(q, 0.55, 0.72), y = desk ? 0.4 : 0.38;
+        const n = seg(q, 0, 0.35), e = seg(q, 0.55, 0.72);
         s2.night.style.opacity = (0.96 * n).toFixed(3);
-        place(s2.hua, y);
-        place(s2.glow, y, 0.9 + 0.7 * n);
-        s2.glow.style.opacity = String(0.5 + 0.5 * n);
-        place(s2.halo, y, 1 + 0.35 * n);
-        s2.halo.style.opacity = String(0.6 + 0.4 * n);
+        scale(s2.glow, 0.9 + 0.7 * n, 0.5 + 0.5 * n);
+        scale(s2.halo, 1 + 0.35 * n, 0.6 + 0.4 * n);
         s2.end.style.opacity = String(e);
         s2.end.style.transform = `translate3d(0, ${((1 - e) * 20).toFixed(1)}px, 0)`;
         lamps.forEach((l) => {
@@ -113,12 +114,16 @@ const Landing = () => {
     };
     let raf = 0;
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; frame(); }); };
-    const onResize = () => { size(); frame(); };
-    size(); frame();
-    window.addEventListener("scroll", onScroll, { passive: true });
+    const onResize = () => { size(); if (!native) frame(); };
+    size();
+    if (!native) {
+      frame();
+      window.addEventListener("scroll", onScroll, { passive: true });
+    }
     window.addEventListener("resize", onResize);
     return () => {
       cancelAnimationFrame(raf);
+      io?.disconnect();
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
     };
@@ -151,14 +156,16 @@ const Landing = () => {
     <div className="landing" ref={rootRef}>
       <section className="pin pin1" ref={pin1}>
         <div className="pin-in">
-          <div className="lglow" />
-          <div className="lhalo" />
+          <div className="lstage">
+            <div className="lglow" />
+            <div className="lhalo" />
+            <div className="lhua" ref={huaRef}>
+              <div className="lfloat"><Lantern mood="happy" /></div>
+            </div>
+          </div>
           <div className="ltitle">
             <h1>{t("home.hero.title")}</h1>
             <p>{t("land.hero.sub")}</p>
-          </div>
-          <div className="lhua" ref={huaRef}>
-            <div className="lfloat"><Lantern mood="happy" /></div>
           </div>
           <button type="button" className={`lcard${pressed ? " press" : ""}`} onClick={hello} aria-label={t("land.hello.aria")}>
             <span className="lsyls">
@@ -183,13 +190,15 @@ const Landing = () => {
           <div className="lnight" />
           <div className="lsky" aria-hidden="true">
             {SKY.map(([x, s, w], i) => (
-              <i key={i} style={{ "--x": `${x}%`, "--w": `${w}px` } as React.CSSProperties} data-s={s} data-d={(i % 4) * 0.05} />
+              <i key={i} style={{ "--x": `${x}%`, "--w": `${w}px`, "--s": s, "--r": `${15 + (i % 4) * 5}%` } as React.CSSProperties} data-s={s} data-d={(i % 4) * 0.05} />
             ))}
           </div>
-          <div className="lglow" />
-          <div className="lhalo" />
-          <div className="lhua">
-            <div className="lfloat"><Lantern mood="happy" /></div>
+          <div className="lstage">
+            <div className="lglow" />
+            <div className="lhalo" />
+            <div className="lhua">
+              <div className="lfloat"><Lantern mood="happy" /></div>
+            </div>
           </div>
           <div className="lend">
             <h2>{t("home.closing.title")}</h2>

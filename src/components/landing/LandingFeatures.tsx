@@ -94,16 +94,12 @@ const Feat = ({
   return (
     <div ref={ref} className={`feat rv ${kind}${inView ? " in" : ""}`}>
       <div className="ic">{icon}</div>
-      <div>
-        <div className="t">
-          <h3 aria-label={`${plain} ${red}`}><TypeIn plain={plain} red={red} start={inView} /></h3>
-          <span className="d">
-            {name && <span className="pname">{name}</span>}
-            {desc}
-          </span>
-        </div>
-        <div className={`ex ${EX[kind]}`}>{children(inView)}</div>
-      </div>
+      <h3 className="t" aria-label={`${plain} ${red}`}><TypeIn plain={plain} red={red} start={inView} /></h3>
+      <p className="d">
+        {name && <span className="pname">{name}</span>}
+        {desc}
+      </p>
+      <div className={`ex ${EX[kind]}`}>{children(inView)}</div>
     </div>
   );
 };

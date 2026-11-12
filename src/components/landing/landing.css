@@ -32,11 +32,15 @@
 .landing .pin-in { contain: layout paint; }
 /* Only opacity and transform change while scrolling, each on its own layer, so the browser never repaints */
 .landing .lnight { position: absolute; inset: 0; background: linear-gradient(180deg, hsl(352 60% 10%), hsl(352 55% 18%) 70%, hsl(14 60% 26%)); opacity: 0; will-change: opacity; }
-.landing .lglow, .landing .lhalo { position: absolute; left: 50%; top: 50%; aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; will-change: transform, opacity; }
+/* Hua, his glow and his halo move together on one stage, centred where he hangs */
+.landing .lstage { position: absolute; left: 50%; top: 50%; width: 0; height: 0; will-change: transform; }
+.landing .pin1 .lstage { transform: translate3d(0, calc(var(--l-vh) * .08), 0); }
+.landing .pin2 .lstage { transform: translate3d(0, calc(var(--l-vh) * -.12), 0); }
+.landing .lglow, .landing .lhalo { position: absolute; left: 0; top: 0; aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; will-change: transform, opacity; }
 .landing .lglow { width: calc(var(--l-hw) * 2.2); background: radial-gradient(closest-side, color-mix(in srgb, var(--l-glow) 85%, transparent), color-mix(in srgb, var(--l-glow) 35%, transparent) 55%, transparent); opacity: .4; }
 /* his own warm light, brighter as he lights up */
 .landing .lhalo { width: calc(var(--l-hw) * 1.25); background: radial-gradient(closest-side, hsl(40 95% 62% / .6), hsl(40 95% 62% / .25) 50%, transparent 72%); opacity: 0; }
-.landing .lhua { position: absolute; left: 50%; top: 50%; width: var(--l-hw); aspect-ratio: 1024 / 1050; transform: translate(-50%, -50%); will-change: transform; }
+.landing .lhua { position: absolute; left: 0; top: 0; width: var(--l-hw); aspect-ratio: 1024 / 1050; transform: translate(-50%, -50%); will-change: transform; }
 .landing .lhua::before { content: ""; position: absolute; left: calc(50% - 1.5px); bottom: 99%; width: 3px; height: 1200px; background: #D9A12A; }
 .landing .lfloat { width: 100%; height: 100%; animation: l-float 3.4s ease-in-out infinite alternate; will-change: transform; }
 @keyframes l-float { from { transform: translateY(-5px); } to { transform: translateY(5px); } }
@@ -44,7 +48,7 @@
 /* the string is drawn above him, so he floats but never swings off it; the tassel stays still so the big drawing is never repainted */
 .landing .lhua .lh-rig, .landing .lhua .lh-lantern, .landing .lhua .lh-tassel { animation: none; }
 /* a scene that is off screen stops moving */
-.landing .pin:not(.live) * { animation-play-state: paused !important; }
+.landing .pin:not(.live) .lfloat, .landing .pin:not(.live) .lh * { animation-play-state: paused; }
 .landing .lhua.hi svg { animation: l-hi .7s cubic-bezier(.3,1.5,.5,1); }
 @keyframes l-hi { 30% { transform: translateY(-22px) scale(1.04, .97); } 55% { transform: translateY(0) scale(1.06, .92); } 75% { transform: translateY(-6px) scale(.98, 1.03); } }
 
@@ -95,20 +99,26 @@
 @keyframes l-glow { to { opacity: 1; } }
 
 .landing .feats { display: flex; flex-direction: column; gap: 40px; margin-top: 6px; }
-.landing .feat { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px; align-items: start; }
-.landing .feat .ic { width: 64px; height: 64px; margin-top: -4px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(closest-side, color-mix(in srgb, var(--l-glow) 45%, transparent), transparent); }
+.landing .feat { display: grid; grid-template-columns: 64px minmax(0, 1fr); grid-template-areas: "ic t" "d d" "ex ex"; column-gap: 14px; align-items: center; }
+/* phones: the icon sits beside the heading only, the text and the example get the full width */
+.landing .feat .ic { grid-area: ic; }
+.landing .feat .t { grid-area: t; }
+.landing .feat .d { grid-area: d; }
+.landing .feat .ex { grid-area: ex; }
+.landing .feat .ic { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(closest-side, color-mix(in srgb, var(--l-glow) 45%, transparent), transparent); }
 .landing .feat .ic svg { width: 54px; height: 54px; overflow: visible; transform: scale(0); will-change: transform; }
 .landing .feat h3 { display: block; font-size: 20px; line-height: 1.2; font-weight: 800; margin: 0; }
 .landing .feat .hl { color: var(--l-red); white-space: nowrap; }
 .landing .feat h3 .gh { visibility: hidden; }
 .landing .feat h3 .caret { display: inline-block; width: 2px; height: .95em; margin-inline: 2px -4px; vertical-align: -.1em; background: currentColor; animation: l-caret .7s steps(1) infinite; }
 @keyframes l-caret { 50% { opacity: 0; } }
-.landing .feat .d { display: block; color: var(--l-muted); font-size: 15px; line-height: 1.4; margin-top: 2px; }
+.landing .feat .d { display: block; color: var(--l-muted); font-size: 15px; line-height: 1.4; margin: 8px 0 0; }
 .landing .feat .pname { display: block; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--l-red); margin-bottom: 2px; }
 .landing .feat .pname span { letter-spacing: 0; }
-.landing .feat .t, .landing .feat .ex { opacity: 0; transform: translateY(14px); transition: opacity .5s ease-out .15s, transform .5s cubic-bezier(.2,1.3,.4,1) .15s; }
+.landing .feat .t, .landing .feat .d, .landing .feat .ex { opacity: 0; transform: translateY(14px); transition: opacity .5s ease-out .15s, transform .5s cubic-bezier(.2,1.3,.4,1) .15s; }
+.landing .feat .d { transition-delay: .3s; }
 .landing .feat .ex { transition-delay: .5s; }
-.landing .feat.in .t, .landing .feat.in .ex { opacity: 1; transform: none; }
+.landing .feat.in .t, .landing .feat.in .d, .landing .feat.in .ex { opacity: 1; transform: none; }
 .landing .ex { margin-top: 12px; width: 100%; max-width: 290px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
 /* icons arrive, then keep a small life of their own */
@@ -212,7 +222,7 @@
 .landing .ex.move { flex-direction: column; align-items: stretch; gap: 12px; }
 .landing .plist { display: flex; flex-direction: column; border-top: 2px solid var(--l-line); }
 .landing .prow { font: inherit; color: inherit; display: flex; align-items: center; gap: 10px; padding: 8px 2px; border: 0; border-bottom: 2px solid var(--l-line); background: none; cursor: pointer; text-align: start; }
-.landing .prow .pl { flex: 1; display: flex; flex-direction: column; line-height: 1.2; }
+.landing .prow .pl { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
 .landing .prow .pzh { font-size: 20px; font-weight: 700; color: var(--l-ink); }
 .landing .prow .pen { font-size: 13px; color: var(--l-muted); }
 .landing .prow .pmore { display: flex; flex-direction: column; overflow: hidden; max-height: 0; transition: max-height .3s ease-out; }
@@ -227,12 +237,13 @@
 .landing .playing .w1 { animation: l-wave .6s ease-in-out infinite alternate; }
 .landing .playing .w2 { animation: l-wave .6s ease-in-out .2s infinite alternate; }
 @keyframes l-wave { from { opacity: .25; } to { opacity: 1; } }
-.landing .move-cta { align-self: flex-start; }
+.landing .move-cta { align-self: flex-start; max-width: 100%; }
+.landing .move-cta button { white-space: normal; height: auto; min-height: 2.75rem; text-align: center; }
 
 /* Little Lanterns: picture tiles */
 .landing .ex.kids { flex-direction: column; align-items: flex-start; gap: 8px; }
 .landing .klab { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--l-muted); }
-.landing .pics { display: flex; gap: 10px; }
+.landing .pics { display: flex; flex-wrap: wrap; gap: 10px; }
 .landing .pic { width: 62px; height: 62px; padding: 6px; border-radius: 16px; border: 2.5px solid var(--l-line); background: var(--l-card); cursor: pointer; display: grid; place-items: center; transform: scale(0); }
 .landing .pic svg { width: 100%; height: 100%; }
 .landing .feat.in .pic { animation: l-picin .45s cubic-bezier(.2,1.7,.4,1) forwards; animation-delay: calc(.8s + var(--i) * .2s); }
@@ -241,14 +252,20 @@
 
 /* Teacher's Corner: the class code */
 .landing .ex.teach { flex-wrap: nowrap; gap: 10px; align-items: stretch; }
-.landing .code { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 8px 14px; border: 2.5px solid var(--l-stroke); border-radius: 14px; background: var(--l-card); box-shadow: 3px 3px 0 var(--l-stamp); }
+.landing .code { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 14px; border: 2.5px solid var(--l-stroke); border-radius: 14px; background: var(--l-card); box-shadow: 3px 3px 0 var(--l-stamp); }
 .landing .clab { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--l-muted); }
 .landing .cval { font-size: 22px; font-weight: 800; letter-spacing: .12em; color: var(--l-ink); direction: ltr; text-align: start; }
 .landing .cval .gh { visibility: hidden; }
 .landing .db.copy { align-self: center; }
 
 /* ───────── desktop ───────── */
+@media (min-width: 560px) {
+  .landing .feat { grid-template-areas: "ic t" ". d" ". ex"; align-items: start; column-gap: 16px; }
+  .landing .feat .ic { margin-top: -4px; }
+  .landing .feat .d { margin-top: 2px; }
+}
 @media (min-width: 768px) {
+  .landing .pin2 .lstage { transform: translate3d(0, calc(var(--l-vh) * -.1), 0); }
   .landing .ltitle { top: 44px; }
   .landing .ltitle h1 { font-size: 48px; }
   .landing .ltitle p { font-size: 18px; }
@@ -269,7 +286,7 @@
 /* People who ask for less motion see the finished, still page */
 @media (prefers-reduced-motion: reduce) {
   .landing .lfloat, .landing .lhua.hi svg { animation: none; }
-  .landing .rv, .landing .fhead .w, .landing .feat .ic svg, .landing .feat .t, .landing .feat .ex, .landing .pic, .landing .days span,
+  .landing .rv, .landing .fhead .w, .landing .feat .ic svg, .landing .feat .t, .landing .feat .d, .landing .feat .ex, .landing .pic, .landing .days span,
   .landing .feat.brush .scroll, .landing .feat.brush .rbot { opacity: 1 !important; transform: none !important; animation: none !important; transition: none !important; }
   .landing .fhead .gold::after { transform: scaleX(1); }
   .landing .days i { background: var(--l-red); }
@@ -278,4 +295,53 @@
   .landing .tn .tdot { opacity: 1 !important; animation: none !important; }
   .landing .feat .paw, .landing .feat .ktail, .landing .feat .ic svg { animation: none !important; }
   .landing .prow .pmore { transition: none; }
+}
+
+/* Scroll-linked scenes run by the browser itself, off the page's main thread, where supported.
+   The same ranges as the script fallback in Landing.tsx. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .landing .pin1 { view-timeline: --l-p1 block; --y0: .08; --y1: -.14; }
+    .landing .pin2 { view-timeline: --l-p2 block; }
+    .landing .pin1 .lstage, .landing .pin1 .ltitle, .landing .pin1 .lglow, .landing .pin1 .lhalo,
+    .landing .pin1 .lcard, .landing .lsyl .zh, .landing .lsyl .py, .landing .lsyl .arg, .landing .lcard .lab, .landing .lcard .lspk, .landing .lsyls::after {
+      animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --l-p1;
+    }
+    .landing .pin2 .lnight, .landing .pin2 .lglow, .landing .pin2 .lhalo, .landing .pin2 .lend, .landing .lsky i {
+      animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --l-p2;
+    }
+    .landing .pin1 .ltitle { animation-name: l-s-title; animation-range: contain 0% contain 22%; }
+    .landing .pin1 .lstage { animation-name: l-s-stage; animation-range: contain 6% contain 38%; }
+    .landing .pin1 .lglow { animation-name: l-s-glow1; animation-range: contain 4% contain 50%; }
+    .landing .pin1 .lhalo { animation-name: l-s-halo1; animation-range: contain 4% contain 50%; }
+    .landing .pin1 .lcard, .landing .lsyl .zh { animation-name: l-s-in; animation-range: contain 42% contain 52%; }
+    .landing .pin1 .lcard { animation-name: l-s-fade; }
+    .landing .lsyl .py, .landing .lcard .lspk { animation-name: l-s-in; animation-range: contain 54% contain 64%; }
+    .landing .lsyls::after { animation-name: l-s-fade; animation-range: contain 54% contain 64%; }
+    .landing .lsyl .arg { animation-name: l-s-in; animation-range: contain 66% contain 76%; }
+    .landing .lcard .lab { animation-name: l-s-in; animation-range: contain 78% contain 88%; }
+    .landing .pin2 .lnight { animation-name: l-s-night; animation-range: contain 0% contain 35%; }
+    .landing .pin2 .lglow { animation-name: l-s-glow2; animation-range: contain 0% contain 35%; }
+    .landing .pin2 .lhalo { animation-name: l-s-halo2; animation-range: contain 0% contain 35%; }
+    .landing .pin2 .lend { animation-name: l-s-end; animation-range: contain 55% contain 72%; }
+    .landing .lsky i { animation-name: l-s-lamp; animation-range: contain var(--r) contain 100%; }
+  }
+  @media (prefers-reduced-motion: no-preference) and (min-width: 768px) {
+    .landing .pin1 { --y0: .1; --y1: -.08; }
+  }
+}
+@keyframes l-s-title { to { opacity: 0; transform: translate3d(0, -40px, 0); } }
+@keyframes l-s-stage { from { transform: translate3d(0, calc(var(--l-vh) * var(--y0)), 0); } to { transform: translate3d(0, calc(var(--l-vh) * var(--y1)), 0); } }
+@keyframes l-s-glow1 { from { opacity: .35; transform: translate(-50%, -50%) scale(.75); } to { opacity: 1; transform: translate(-50%, -50%) scale(1.3); } }
+@keyframes l-s-halo1 { from { opacity: 0; transform: translate(-50%, -50%) scale(.8); } to { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } }
+@keyframes l-s-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes l-s-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes l-s-night { from { opacity: 0; } to { opacity: .96; } }
+@keyframes l-s-glow2 { from { opacity: .5; transform: translate(-50%, -50%) scale(.9); } to { opacity: 1; transform: translate(-50%, -50%) scale(1.6); } }
+@keyframes l-s-halo2 { from { opacity: .6; transform: translate(-50%, -50%) scale(1); } to { opacity: 1; transform: translate(-50%, -50%) scale(1.35); } }
+@keyframes l-s-end { from { opacity: 0; transform: translate3d(0, 20px, 0); } to { opacity: 1; transform: none; } }
+@keyframes l-s-lamp {
+  0% { opacity: 0; transform: translate3d(0, 0, 0); }
+  20%, 85% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(0, calc(var(--l-vh) * -.95 * var(--s)), 0); }
 }
