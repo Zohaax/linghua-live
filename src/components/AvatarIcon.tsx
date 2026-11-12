@@ -5,64 +5,91 @@ import { AVATAR_IDS, type AvatarId } from "@/lib/avatars";
 const INK = "#2A1E1C";
 const RED = "#E8352B";
 const GOLD = "#FCC755";
-const CREAM = "#FFF6E8";
 const WHITE = "#FFFFFF";
 const GREEN = "#3FA66B";
 const PINK = "#F59BA8";
 
+/* sitting panda with Hua's eyes, no bamboo */
 const Panda = () => (
   <>
-    <circle cx="16" cy="17" r="7" fill={INK} />
-    <circle cx="48" cy="17" r="7" fill={INK} />
-    <ellipse cx="32" cy="36" rx="22" ry="20" fill={WHITE} stroke={INK} strokeWidth="3" />
-    <ellipse cx="23" cy="34" rx="6" ry="7.5" fill={INK} transform="rotate(-20 23 34)" />
-    <ellipse cx="41" cy="34" rx="6" ry="7.5" fill={INK} transform="rotate(20 41 34)" />
-    <circle cx="24" cy="33" r="2" fill={WHITE} />
-    <circle cx="40" cy="33" r="2" fill={WHITE} />
-    <ellipse cx="32" cy="42" rx="3.2" ry="2.3" fill={INK} />
-    <path d="M28.5 46 q3.5 3 7 0" fill="none" stroke={INK} strokeWidth="2" strokeLinecap="round" />
-    <circle cx="17" cy="43" r="3" fill={RED} opacity="0.35" />
-    <circle cx="47" cy="43" r="3" fill={RED} opacity="0.35" />
+    <ellipse cx="33" cy="49" rx="14" ry="11" fill="#FFFFFF" stroke="#2A1E1C" strokeWidth="2.5"/>
+    <ellipse cx="22" cy="57" rx="6.5" ry="5" fill="#3A2D2B" stroke="#2A1E1C" strokeWidth="2"/>
+    <ellipse cx="44" cy="57" rx="6.5" ry="5" fill="#3A2D2B" stroke="#2A1E1C" strokeWidth="2"/>
+    <circle cx="21" cy="57.5" r="2.4" fill="#FFFFFF"/>
+    <circle cx="45" cy="57.5" r="2.4" fill="#FFFFFF"/>
+    <ellipse cx="45" cy="45" rx="4.5" ry="7" fill="#3A2D2B" stroke="#2A1E1C" strokeWidth="2" transform="rotate(-18 45 45)"/>
+    <ellipse cx="21" cy="45" rx="4.5" ry="7" fill="#3A2D2B" stroke="#2A1E1C" strokeWidth="2" transform="rotate(18 21 45)"/>
+    <circle cx="17" cy="13" r="6" fill="#3A2D2B" stroke="#2A1E1C" strokeWidth="2.4"/>
+    <circle cx="49" cy="13" r="6" fill="#3A2D2B" stroke="#2A1E1C" strokeWidth="2.4"/>
+    <ellipse cx="33" cy="26" rx="19" ry="16" fill="#FFFFFF" stroke="#2A1E1C" strokeWidth="3"/>
+    <ellipse cx="25.3" cy="24.5" rx="5.4" ry="6.6" fill="#6E5A55" transform="rotate(-20 25.3 24.5)"/>
+    <ellipse cx="40.7" cy="24.5" rx="5.4" ry="6.6" fill="#6E5A55" transform="rotate(20 40.7 24.5)"/>
+    <ellipse cx="25.6" cy="24.6" rx="2.9" ry="3.7" fill="#2A1E1C"/>
+    <circle cx="26.6" cy="23.3" r="1.1" fill="#FFFFFF"/>
+    <ellipse cx="40.4" cy="24.6" rx="2.9" ry="3.7" fill="#2A1E1C"/>
+    <circle cx="41.4" cy="23.3" r="1.1" fill="#FFFFFF"/>
+    <ellipse cx="33" cy="30" rx="2.7" ry="1.9" fill="#2A1E1C"/>
+    <path d="M29.4 32.4 Q33 31.4 36.6 32.4 Q36 37.6 33 37.6 Q30 37.6 29.4 32.4Z" fill="#2A1E1C"/>
+    <ellipse cx="33" cy="35.8" rx="2.2" ry="1.3" fill="#FF7A8A"/>
+    <circle cx="18.5" cy="32" r="2.6" fill="#F59BA8"/>
+    <circle cx="47.5" cy="32" r="2.6" fill="#F59BA8"/>
   </>
 );
 
+/* winged little red dragon */
 const Dragon = () => (
   <>
-    {/* golden mane behind the head */}
-    <path d="M8 36 l-4 -6 l7 0 l-3 -7 l8 3 l0 -8 l7 6 l3 -8 l6 7 l6 -7 l3 8 l7 -6 l0 8 l8 -3 l-3 7 l7 0 l-4 6 z" fill={GOLD} stroke={INK} strokeWidth="2" strokeLinejoin="round" />
-    {/* branching antlers */}
-    <path d="M22 18 q-4 -8 -2 -13 M21 11 q-5 -1 -7 -4 M42 18 q4 -8 2 -13 M43 11 q5 -1 7 -4" fill="none" stroke={INK} strokeWidth="2.5" strokeLinecap="round" />
-    {/* head */}
-    <ellipse cx="32" cy="35" rx="19" ry="17" fill={GREEN} stroke={INK} strokeWidth="3" />
-    {/* snout */}
-    <ellipse cx="32" cy="43" rx="12" ry="7.5" fill={CREAM} stroke={INK} strokeWidth="2.5" />
-    <circle cx="28" cy="42" r="1.5" fill={INK} />
-    <circle cx="36" cy="42" r="1.5" fill={INK} />
-    <path d="M29 46.5 q3 2 6 0" fill="none" stroke={INK} strokeWidth="1.8" strokeLinecap="round" />
-    {/* big friendly eyes */}
-    <circle cx="24" cy="30" r="5" fill={WHITE} stroke={INK} strokeWidth="2" />
-    <circle cx="40" cy="30" r="5" fill={WHITE} stroke={INK} strokeWidth="2" />
-    <circle cx="25" cy="31" r="2.4" fill={INK} />
-    <circle cx="39" cy="31" r="2.4" fill={INK} />
-    <circle cx="25.8" cy="30" r="0.8" fill={WHITE} />
-    <circle cx="39.8" cy="30" r="0.8" fill={WHITE} />
-    {/* curly whiskers */}
-    <path d="M21 44 q-8 -1 -10 5 q-1 4 3 4 M43 44 q8 -1 10 5 q1 4 -3 4" fill="none" stroke={RED} strokeWidth="2.5" strokeLinecap="round" />
+    <path d="M22 45 L5 33 Q3 41 8 44 Q6 49 11 50 Q12 54 20 52 Z" fill="#C61F18" stroke="#2A1E1C" strokeWidth="2.2" strokeLinejoin="round"/>
+    <path d="M20 46.5 L9 38.5 Q9 42 11.5 44 Q10.5 47 14 47.5 Q15 50 20 49.5 Z" fill="#FFE6C2"/>
+    <g transform="translate(64 0) scale(-1 1)">
+    <path d="M22 45 L5 33 Q3 41 8 44 Q6 49 11 50 Q12 54 20 52 Z" fill="#C61F18" stroke="#2A1E1C" strokeWidth="2.2" strokeLinejoin="round"/>
+    <path d="M20 46.5 L9 38.5 Q9 42 11.5 44 Q10.5 47 14 47.5 Q15 50 20 49.5 Z" fill="#FFE6C2"/>
+    </g>
+    <path d="M39 55 q11 1 11 -8" fill="none" stroke="#2A1E1C" strokeWidth="7" strokeLinecap="round"/>
+    <path d="M39 55 q11 1 11 -8" fill="none" stroke="#E8352B" strokeWidth="3.4" strokeLinecap="round"/>
+    <path d="M50 48 q-4 -3 -1 -7 q2 -2 4 1 q3 3 -1 6 z" fill="#FFE6C2" stroke="#2A1E1C" strokeWidth="1.8"/>
+    <ellipse cx="27" cy="59.5" rx="3.6" ry="2.2" fill="#E8352B" stroke="#2A1E1C" strokeWidth="2"/>
+    <ellipse cx="37" cy="59.5" rx="3.6" ry="2.2" fill="#E8352B" stroke="#2A1E1C" strokeWidth="2"/>
+    <rect x="23" y="41" width="18" height="18" rx="8" fill="#E8352B" stroke="#2A1E1C" strokeWidth="2.5"/>
+    <ellipse cx="32" cy="51" rx="5" ry="6" fill="#FFE6C2" stroke="#2A1E1C" strokeWidth="1.6"/>
+    <path d="M28.5 49 h7 M28.5 52.5 h7" stroke="#2A1E1C" strokeWidth="1.2" strokeLinecap="round" opacity=".45"/>
+    <path d="M22 15 Q19 11 15 11 Q12 9 14 6 Q17 5 19 8 Q19 4 23 4 Q26 6 24 10 Q27 12 26 16 Z" fill="#FFE6C2" stroke="#2A1E1C" strokeWidth="2" strokeLinejoin="round"/>
+    <g transform="translate(64 0) scale(-1 1)">
+    <path d="M22 15 Q19 11 15 11 Q12 9 14 6 Q17 5 19 8 Q19 4 23 4 Q26 6 24 10 Q27 12 26 16 Z" fill="#FFE6C2" stroke="#2A1E1C" strokeWidth="2" strokeLinejoin="round"/>
+    </g>
+    <path d="M15 22 L5 17 L9 30 Z" fill="#FFE6C2" stroke="#2A1E1C" strokeWidth="2" strokeLinejoin="round"/>
+    <g transform="translate(64 0) scale(-1 1)">
+    <path d="M15 22 L5 17 L9 30 Z" fill="#FFE6C2" stroke="#2A1E1C" strokeWidth="2" strokeLinejoin="round"/>
+    </g>
+    <circle cx="13.5" cy="33" r="4" fill="#C61F18" stroke="#2A1E1C" strokeWidth="2"/>
+    <g transform="translate(64 0) scale(-1 1)">
+    <circle cx="13.5" cy="33" r="4" fill="#C61F18" stroke="#2A1E1C" strokeWidth="2"/>
+    </g>
+    <ellipse cx="32" cy="27" rx="19" ry="17" fill="#E8352B" stroke="#2A1E1C" strokeWidth="3"/>
+    <ellipse cx="32" cy="34" rx="14" ry="9.5" fill="#FFE6C2" stroke="#2A1E1C" strokeWidth="2"/>
+    <ellipse cx="25.5" cy="18" rx="2.6" ry="1.5" fill="#FFE6C2"/>
+    <ellipse cx="38.5" cy="18" rx="2.6" ry="1.5" fill="#FFE6C2"/>
+    <circle cx="25" cy="24.5" r="2.7" fill="#2A1E1C"/>
+    <circle cx="39" cy="24.5" r="2.7" fill="#2A1E1C"/>
+    <circle cx="25.9" cy="23.6" r="0.9" fill="#FFFFFF"/>
+    <circle cx="39.9" cy="23.6" r="0.9" fill="#FFFFFF"/>
+    <path d="M29 28 q1.3 -1.2 2.4 0 M32.6 28 q1.3 -1.2 2.4 0" fill="none" stroke="#2A1E1C" strokeWidth="1.4" strokeLinecap="round"/>
+    <path d="M24.5 31 Q32 30 39.5 31 Q38.5 41 32 41 Q25.5 41 24.5 31 Z" fill="#2A1E1C"/>
+    <ellipse cx="32" cy="38" rx="4.2" ry="2" fill="#FF5D4D"/>
+    <path d="M27 31 l1.2 2.4 l1.2 -2.4 Z M34.6 31 l1.2 2.4 l1.2 -2.4 Z" fill="#FFFFFF"/>
   </>
 );
 
+/* white soup dumpling, eyes closed */
 const Dumpling = () => (
   <>
-    <path d="M8 40 q2 -22 24 -24 q22 2 24 24 q-4 10 -24 10 q-20 0 -24 -10 z" fill={CREAM} stroke={INK} strokeWidth="3" strokeLinejoin="round" />
-    {/* pleats */}
-    <path d="M22 20 q2 6 0 10 M32 16 v12 M42 20 q-2 6 0 10" fill="none" stroke={INK} strokeWidth="2" strokeLinecap="round" />
-    {/* face */}
-    <path d="M23 38 q2.5 2.5 5 0 M36 38 q2.5 2.5 5 0" fill="none" stroke={INK} strokeWidth="2" strokeLinecap="round" />
-    <path d="M30 42 q2 2 4 0" fill="none" stroke={INK} strokeWidth="2" strokeLinecap="round" />
-    <circle cx="19" cy="42" r="3" fill={PINK} opacity="0.7" />
-    <circle cx="45" cy="42" r="3" fill={PINK} opacity="0.7" />
-    {/* steam */}
-    <path d="M26 10 q-3 -3 0 -6 M38 10 q-3 -3 0 -6" fill="none" stroke={INK} strokeWidth="1.8" strokeLinecap="round" opacity="0.5" />
+    <path d="M7 41 Q5 25 20 20 Q25 18.5 28.3 18 Q28.6 13.5 30.6 12.6 Q32 11.6 33.4 12.6 Q35.4 13.5 35.7 18 Q39 18.5 44 20 Q59 25 57 41 Q55 55 32 55 Q9 55 7 41Z" fill="#FFFFFF" stroke="#2A1E1C" strokeWidth="3" strokeLinejoin="round"/>
+    <path d="M29.6 17.5 Q30.5 14.5 32 13.4 M32 13.4 Q33.5 14.5 34.4 17.5" fill="none" stroke="#2A1E1C" strokeWidth="1.6" strokeLinecap="round" opacity=".5"/>
+    <path d="M30.5 18 Q24 21.5 15 25 M31.3 18.5 Q28 23 25 27.5 M32.7 18.5 Q36 23 39 27.5 M33.5 18 Q40 21.5 49 25" fill="none" stroke="#2A1E1C" strokeWidth="1.5" strokeLinecap="round" opacity=".35"/>
+    <path d="M20.5 37 q3 3.4 6 0 M37.5 37 q3 3.4 6 0" fill="none" stroke="#2A1E1C" strokeWidth="2.4" strokeLinecap="round"/>
+    <path d="M29 42 q3 2.8 6 0" fill="none" stroke="#2A1E1C" strokeWidth="2.2" strokeLinecap="round"/>
+    <ellipse cx="18" cy="43" rx="3.6" ry="2.3" fill="#F59BA8"/>
+    <ellipse cx="46" cy="43" rx="3.6" ry="2.3" fill="#F59BA8"/>
   </>
 );
 
@@ -74,7 +101,7 @@ const LuckyCat = () => (
     {/* head */}
     <ellipse cx="32" cy="36" rx="21" ry="18" fill={WHITE} stroke={INK} strokeWidth="3" />
     {/* raised paw */}
-    <ellipse cx="54" cy="22" rx="6" ry="8" fill={WHITE} stroke={INK} strokeWidth="2.5" />
+    <ellipse className="paw" cx="54" cy="22" rx="6" ry="8" fill={WHITE} stroke={INK} strokeWidth="2.5" />
     {/* eyes */}
     <path d="M22 34 q3 -3 6 0 M36 34 q3 -3 6 0" fill="none" stroke={INK} strokeWidth="2.2" strokeLinecap="round" />
     <path d="M30 40 l2 2 l2 -2" fill="none" stroke={INK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
