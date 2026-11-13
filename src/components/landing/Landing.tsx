@@ -15,10 +15,10 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
 // On phones the address bar hides and shows while you scroll: don't recalculate then, so nothing jumps
 ScrollTrigger.config({ ignoreMobileResize: true });
 
-/* Sky lanterns at the end: x position (%), size (px), rise time (s), head start (s) */
+/* Sky lanterns at the end: x position (%), how fast it rises, size (px), where it rests when motion is off (0 low to 1 high, clear of Hua) */
 const SKY: [number, number, number, number][] = [
-  [8, 14, 9, 2], [21, 11, 11, 7], [34, 17, 8.5, 4], [47, 9, 12, 9], [57, 12, 10, 1],
-  [66, 13, 10, 6], [78, 18, 9.5, 3], [86, 15, 11, 8.5], [93, 11, 11.5, 5],
+  [8, 0.9, 14, 0.5], [20, 1.25, 11, 0.15], [33, 0.75, 17, 0.72], [64, 1.1, 13, 0.62], [77, 0.85, 18, 0.4],
+  [90, 1.3, 12, 0.68], [14, 1.05, 10, 0.3], [84, 0.7, 15, 0.1], [46, 1.4, 9, 0.58], [56, 0.95, 12, 0.45],
 ];
 
 /* 你好 split into its two syllables, each with pinyin and the Arabic sound guide */
@@ -82,14 +82,20 @@ const Landing = () => {
         .fromTo(q1(".lcard .lab"), { opacity: 0, y: 14 }, pop, 0.78)
         .set({}, {}, 1); // the finished card rests for the last stretch
 
-      // The ending: night falls, his glow grows, the sky fills with lanterns, then the way in
-      gsap.timeline({ defaults: { ease: "none" }, scrollTrigger: scene(p2) })
+      // The ending: night falls, his glow grows, sky lanterns rise with your scroll, then the way in
+      const tl2 = gsap.timeline({ defaults: { ease: "none" }, scrollTrigger: scene(p2) })
         .fromTo(q2(".lnight"), { opacity: 0 }, { opacity: 0.96, duration: 0.35 }, 0)
         .fromTo(q2(".lglow.big"), { opacity: 0 }, { opacity: 1, duration: 0.35 }, 0)
-        .fromTo(q2(".lsky"), { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.1)
-        .fromTo(q2(".lsky"), { y: 0 }, { y: () => sh() * -0.12, duration: 1 }, 0) // the sky drifts up as you scroll
         .fromTo(q2(".lend"), { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.17, ease: "power2.out" }, 0.55)
         .set({}, {}, 1);
+      // each sky lantern sets off a little after the last and rises at its own speed, fading in and out
+      q2(".lsky i").forEach((lamp: HTMLElement) => {
+        const at = 0.15 + Number(lamp.dataset.d), len = 1 - at, speed = Number(lamp.dataset.s);
+        tl2
+          .fromTo(lamp, { y: 0 }, { y: () => -sh() * 0.95 * speed, duration: len }, at)
+          .fromTo(lamp, { opacity: 0 }, { opacity: 1, duration: len * 0.2 }, at)
+          .fromTo(lamp, { opacity: 1 }, { opacity: 0, duration: len * 0.15, immediateRender: false }, at + len * 0.85);
+      });
     });
 
     // Recalculate where the scenes start when the page above them changes height
@@ -197,10 +203,12 @@ const Landing = () => {
         <div className="pin-in">
           <div className="lnight" />
           <div className="lsky" aria-hidden="true">
-            {SKY.map(([x, w, d, h], i) => (
+            {SKY.map(([x, speed, w, rest], i) => (
               <i
                 key={i}
-                style={{ "--x": `${x}%`, "--w": `${w}px`, "--d": `${d}s`, "--h": `-${h}s`, "--p": (h / d).toFixed(2) } as React.CSSProperties}
+                style={{ "--x": `${x}%`, "--w": `${w}px`, "--p": rest } as React.CSSProperties}
+                data-s={speed}
+                data-d={(i % 4) * 0.05}
               />
             ))}
           </div>
