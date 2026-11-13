@@ -1,8 +1,8 @@
 /*
  * The logged-out Home page: Hua is the star.
- * Two scroll-scrubbed scenes (his welcome, and night falling at the end) with the features in between.
- * While scrolling, the script only changes opacity and transform (and --c1..--c4 on the 你好 card),
- * so the browser can move ready-made layers instead of repainting.
+ * The page scrolls natively. Nothing follows the scroll position: Hua's welcome plays on load, the ending plays
+ * when it comes into view, and the features reveal themselves once. Everything that moves changes only
+ * opacity or transform, so the browser moves ready-made layers and never repaints while you scroll.
  */
 .landing {
   --l-red: hsl(var(--primary));
@@ -17,64 +17,77 @@
   --l-gold: hsl(41 89% 63%);
   /* Arabic sound guide: readable gold on blush, brighter on burgundy */
   --l-argold: hsl(36 90% 38%);
-  --l-vh: 600px;
-  --l-hw: 220px;
-  --l-nav: 64px;
+  --l-screen: calc(100vh - 64px);
   overflow-x: clip;
 }
+@supports (height: 100svh) { .landing { --l-screen: calc(100svh - 64px); } }
 .dark .landing { --l-argold: hsl(43 92% 64%); }
 .landing .l-py { font-family: var(--font-pinyin); }
 
-/* ───────── pinned scenes ───────── */
-.landing .pin { position: relative; height: calc(var(--l-vh) * 3); }
-.landing .pin2 { height: calc(var(--l-vh) * 2.4); }
-.landing .pin-in { position: sticky; top: var(--l-nav); height: var(--l-vh); overflow: hidden; }
-.landing .pin-in { contain: layout paint; }
-/* Only opacity and transform change while scrolling, each on its own layer, so the browser never repaints */
-.landing .lnight { position: absolute; inset: 0; background: linear-gradient(180deg, hsl(352 60% 10%), hsl(352 55% 18%) 70%, hsl(14 60% 26%)); opacity: 0; will-change: opacity; }
-/* Hua, his glow and his halo move together on one stage, centred where he hangs */
-.landing .lstage { position: absolute; left: 50%; top: 50%; width: 0; height: 0; will-change: transform; }
-.landing .pin1 .lstage { transform: translate3d(0, calc(var(--l-vh) * .08), 0); }
-.landing .pin2 .lstage { transform: translate3d(0, calc(var(--l-vh) * -.12), 0); }
-.landing .lglow, .landing .lhalo { position: absolute; left: 0; top: 0; aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; will-change: transform, opacity; }
-.landing .lglow { width: calc(var(--l-hw) * 2.2); background: radial-gradient(closest-side, color-mix(in srgb, var(--l-glow) 85%, transparent), color-mix(in srgb, var(--l-glow) 35%, transparent) 55%, transparent); opacity: .4; }
-/* his own warm light, brighter as he lights up */
-.landing .lhalo { width: calc(var(--l-hw) * 1.25); background: radial-gradient(closest-side, hsl(40 95% 62% / .6), hsl(40 95% 62% / .25) 50%, transparent 72%); opacity: 0; }
-.landing .lhua { position: absolute; left: 0; top: 0; width: var(--l-hw); aspect-ratio: 1024 / 1050; transform: translate(-50%, -50%); will-change: transform; }
+/* ───────── Hua: his glow, his warm halo and the lantern itself ───────── */
+.landing .lstage { position: relative; width: var(--l-hw); aspect-ratio: 1024 / 1050; flex: none; }
+.landing .lglow, .landing .lhalo { position: absolute; left: 50%; top: 50%; aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; will-change: transform, opacity; }
+.landing .lglow { width: 230%; background: radial-gradient(closest-side, color-mix(in srgb, var(--l-glow) 85%, transparent), color-mix(in srgb, var(--l-glow) 35%, transparent) 55%, transparent); }
+.landing .lhalo { width: 135%; background: radial-gradient(closest-side, hsl(40 95% 62% / .6), hsl(40 95% 62% / .25) 50%, transparent 72%); }
+.landing .lhua { position: relative; width: 100%; height: 100%; }
 .landing .lhua::before { content: ""; position: absolute; left: calc(50% - 1.5px); bottom: 99%; width: 3px; height: 1200px; background: #D9A12A; }
 .landing .lfloat { width: 100%; height: 100%; animation: l-float 3.4s ease-in-out infinite alternate; will-change: transform; }
 @keyframes l-float { from { transform: translateY(-5px); } to { transform: translateY(5px); } }
 .landing .lhua svg { width: 100%; height: 100%; display: block; overflow: visible; }
-/* the string is drawn above him, so he floats but never swings off it; the tassel stays still so the big drawing is never repainted */
+/* he floats as one piece, so the big drawing is never repainted */
 .landing .lhua .lh-rig, .landing .lhua .lh-lantern, .landing .lhua .lh-tassel { animation: none; }
 /* a scene that is off screen stops moving */
-.landing .pin:not(.live) .lfloat, .landing .pin:not(.live) .lh * { animation-play-state: paused; }
+.landing section:not(.live) .lfloat, .landing section:not(.live) .lh *, .landing section:not(.live) .lhalo, .landing .lnightsec:not(.live) .lsky i { animation-play-state: paused; }
 .landing .lhua.hi svg { animation: l-hi .7s cubic-bezier(.3,1.5,.5,1); }
 @keyframes l-hi { 30% { transform: translateY(-22px) scale(1.04, .97); } 55% { transform: translateY(0) scale(1.06, .92); } 75% { transform: translateY(-6px) scale(.98, 1.03); } }
+@keyframes l-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes l-fade { from { opacity: 0; } to { opacity: 1; } }
+/* his light breathes softly */
+@keyframes l-breathe { from { opacity: 1; } to { opacity: .7; } }
 
-.landing .ltitle { position: absolute; z-index: 2; left: 0; right: 0; top: 28px; padding: 0 22px; text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; will-change: transform, opacity; }
+/* ───────── the welcome: plays once on arrival ───────── */
+.landing .lhero { position: relative; overflow: hidden; min-height: max(520px, var(--l-screen)); display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 18px; padding: 26px 18px 28px; --l-hw: clamp(140px, min(50vw, 30vh), 300px); }
+@supports (height: 100svh) { .landing .lhero { --l-hw: clamp(140px, min(50vw, 30svh), 300px); } }
+.landing .ltitle { position: relative; z-index: 2; text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; animation: l-in .7s cubic-bezier(.2,1,.3,1) both; }
 .landing .ltitle > * { background: var(--l-bg); border-radius: 10px; padding: 2px 10px; box-shadow: 0 0 18px 10px var(--l-bg); margin: 0; }
 .landing .ltitle h1 { font-size: 30px; line-height: 1.1; font-weight: 800; text-wrap: balance; }
 .landing .ltitle p { font-size: 16px; color: var(--l-muted); max-width: 34rem; }
+.landing .lhero .lstage { margin: 34px 0 6px; }
+.landing .lhero .lglow { animation: l-glow1 1.8s ease-out .2s both; }
+.landing .lhero .lhalo { animation: l-halo1 1.6s ease-out .5s both, l-breathe 3.2s ease-in-out 2.1s infinite alternate; }
+@keyframes l-glow1 { from { opacity: .3; transform: translate(-50%, -50%) scale(.7); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes l-halo1 { from { opacity: 0; transform: translate(-50%, -50%) scale(.75); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 
-/* the 你好 card: tap to hear Hua say it */
-.landing .lcard { position: absolute; left: 50%; bottom: 26px; width: min(84%, 420px); transform: translateX(-50%); border: 2.5px solid var(--l-stroke); border-radius: 18px; background: var(--l-card); padding: 12px 16px; text-align: center; display: flex; flex-direction: column; gap: 2px; opacity: var(--c1, 0); box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--l-glow) 90%, transparent); cursor: pointer; font: inherit; color: inherit; }
+/* the 你好 card builds in his light: tap to hear Hua say it */
+.landing .lcard { position: relative; z-index: 2; width: min(100%, 420px); border: 2.5px solid var(--l-stroke); border-radius: 18px; background: var(--l-card); padding: 12px 16px; text-align: center; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--l-glow) 90%, transparent); cursor: pointer; font: inherit; color: inherit; animation: l-in .6s cubic-bezier(.2,1,.3,1) .8s both; }
 .landing .lcard.press { box-shadow: 0 4px 16px -8px color-mix(in srgb, var(--l-glow) 90%, transparent); }
 .landing .lsyls { display: grid; grid-template-columns: 1fr 1fr; column-gap: 26px; position: relative; direction: ltr; }
-.landing .lsyls::after { content: ""; position: absolute; left: 50%; top: 12%; bottom: 12%; width: 2px; background: var(--l-line); opacity: var(--c2, 0); }
+.landing .lsyls::after { content: ""; position: absolute; left: 50%; top: 12%; bottom: 12%; width: 2px; background: var(--l-line); animation: l-fade .5s ease-out 1.2s both; }
 .landing .lsyl { display: flex; flex-direction: column; align-items: center; line-height: 1.15; padding: 4px 6px 6px; border-radius: 14px; transition: background .25s; }
 .landing .lsyl.on { background: color-mix(in srgb, var(--l-glow) 28%, transparent); }
-.landing .lsyl > *, .landing .lcard .lab, .landing .lcard .lspk { opacity: var(--o, 0); transform: translateY(calc((1 - var(--o, 0)) * 14px)); }
-.landing .lsyl .zh { --o: var(--c1); font-size: 56px; font-weight: 700; color: var(--l-ink); }
-.landing .lsyl .py { --o: var(--c2); font-size: 21px; font-weight: 800; color: var(--l-red); }
-.landing .lsyl .arg { --o: var(--c3); font-size: 27px; font-weight: 700; color: var(--l-argold); }
-.landing .lcard .lab { --o: var(--c4); font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--l-red); }
-.landing .lcard .lspk { --o: var(--c2); position: absolute; inset-inline-end: 10px; top: 10px; width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--l-line); display: grid; place-items: center; color: var(--l-muted); }
+.landing .lsyl > *, .landing .lcard .lab, .landing .lcard .lspk { animation: l-in .5s cubic-bezier(.2,1,.3,1) both; }
+.landing .lsyl .zh { animation-delay: .95s; font-size: 56px; font-weight: 700; color: var(--l-ink); }
+.landing .lsyl .py { animation-delay: 1.25s; font-size: 21px; font-weight: 800; color: var(--l-red); }
+.landing .lsyl .arg { animation-delay: 1.55s; font-size: 27px; font-weight: 700; color: var(--l-argold); }
+.landing .lcard .lab { animation-delay: 1.85s; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--l-red); }
+.landing .lcard .lspk { animation-delay: 1.25s; position: absolute; inset-inline-end: 10px; top: 10px; width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--l-line); display: grid; place-items: center; color: var(--l-muted); }
 .landing .lcard .lspk svg { width: 17px; height: 17px; }
 
-/* the ending: night falls, sky lanterns rise */
-.landing .lsky i { position: absolute; left: var(--x); bottom: 0; width: var(--w, 16px); aspect-ratio: 3 / 4; border-radius: 42%; background: hsl(8 85% 55%); box-shadow: inset 0 3px 0 var(--l-gold), inset 0 -3px 0 var(--l-gold), 0 0 14px hsl(35 95% 60% / .8); opacity: 0; will-change: transform, opacity; }
-.landing .lend { position: absolute; left: 0; right: 0; bottom: 34px; padding: 0 22px; display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center; opacity: 0; will-change: transform, opacity; color: hsl(33 90% 94%); }
+/* ───────── the ending: it is night, sky lanterns rise around him ───────── */
+.landing .lnightsec { position: relative; overflow: hidden; min-height: min(max(520px, var(--l-screen)), 820px); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 30px; padding: 150px 22px 48px; background: linear-gradient(180deg, var(--l-bg), hsl(352 60% 10%) 150px, hsl(352 55% 18%) 72%, hsl(14 60% 26%)); --l-hw: clamp(130px, min(44vw, 26vh), 260px); }
+@supports (height: 100svh) { .landing .lnightsec { --l-hw: clamp(130px, min(44vw, 26svh), 260px); } }
+.landing .lnightsec .lstage { margin: auto 0 0; }
+.landing .lnightsec .lglow { opacity: .5; transform: translate(-50%, -50%) scale(.85); transition: opacity 1.6s ease-out, transform 1.6s ease-out; }
+.landing .lnightsec.seen .lglow { opacity: 1; transform: translate(-50%, -50%) scale(1.25); }
+.landing .lnightsec .lhalo { animation: l-breathe 3.2s ease-in-out infinite alternate; }
+.landing .lsky i { position: absolute; left: var(--x); bottom: -30px; width: var(--w, 16px); aspect-ratio: 3 / 4; border-radius: 42%; background: hsl(8 85% 55%); box-shadow: inset 0 3px 0 var(--l-gold), inset 0 -3px 0 var(--l-gold), 0 0 14px hsl(35 95% 60% / .8); opacity: 0; will-change: transform, opacity; animation: l-rise var(--d) linear calc(var(--dl) * -1) infinite; }
+@keyframes l-rise {
+  0% { opacity: 0; transform: translate3d(0, 0, 0); }
+  12%, 80% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(0, -860px, 0); }
+}
+.landing .lend { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center; color: hsl(33 90% 94%); opacity: 0; transform: translateY(16px); transition: opacity .7s ease-out .5s, transform .7s cubic-bezier(.2,1,.3,1) .5s; }
+.landing .lnightsec.seen .lend { opacity: 1; transform: none; }
 .landing .lend h2 { margin: 0; font-size: 28px; line-height: 1.12; font-weight: 800; text-wrap: balance; }
 
 /* ───────── between the scenes ───────── */
@@ -265,8 +278,7 @@
   .landing .feat .d { margin-top: 2px; }
 }
 @media (min-width: 768px) {
-  .landing .pin2 .lstage { transform: translate3d(0, calc(var(--l-vh) * -.1), 0); }
-  .landing .ltitle { top: 44px; }
+  .landing .lhero { padding-top: 44px; }
   .landing .ltitle h1 { font-size: 48px; }
   .landing .ltitle p { font-size: 18px; }
   .landing .lsyl .zh { font-size: 62px; }
@@ -285,7 +297,11 @@
 
 /* People who ask for less motion see the finished, still page */
 @media (prefers-reduced-motion: reduce) {
-  .landing .lfloat, .landing .lhua.hi svg { animation: none; }
+  .landing .lfloat, .landing .lhua.hi svg, .landing .ltitle, .landing .lglow, .landing .lhalo, .landing .lcard, .landing .lsyls::after,
+  .landing .lsyl > *, .landing .lcard .lab, .landing .lcard .lspk { animation: none !important; }
+  .landing .lsky i { animation: none; opacity: 1; transform: translate3d(0, calc(var(--dl) * -40px - 60px), 0); }
+  .landing .lend, .landing .lnightsec .lglow { transition: none; }
+  .landing .lend { opacity: 1; transform: none; }
   .landing .rv, .landing .fhead .w, .landing .feat .ic svg, .landing .feat .t, .landing .feat .d, .landing .feat .ex, .landing .pic, .landing .days span,
   .landing .feat.brush .scroll, .landing .feat.brush .rbot { opacity: 1 !important; transform: none !important; animation: none !important; transition: none !important; }
   .landing .fhead .gold::after { transform: scaleX(1); }
@@ -295,53 +311,4 @@
   .landing .tn .tdot { opacity: 1 !important; animation: none !important; }
   .landing .feat .paw, .landing .feat .ktail, .landing .feat .ic svg { animation: none !important; }
   .landing .prow .pmore { transition: none; }
-}
-
-/* Scroll-linked scenes run by the browser itself, off the page's main thread, where supported.
-   The same ranges as the script fallback in Landing.tsx. */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .landing .pin1 { view-timeline: --l-p1 block; --y0: .08; --y1: -.14; }
-    .landing .pin2 { view-timeline: --l-p2 block; }
-    .landing .pin1 .lstage, .landing .pin1 .ltitle, .landing .pin1 .lglow, .landing .pin1 .lhalo,
-    .landing .pin1 .lcard, .landing .lsyl .zh, .landing .lsyl .py, .landing .lsyl .arg, .landing .lcard .lab, .landing .lcard .lspk, .landing .lsyls::after {
-      animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --l-p1;
-    }
-    .landing .pin2 .lnight, .landing .pin2 .lglow, .landing .pin2 .lhalo, .landing .pin2 .lend, .landing .lsky i {
-      animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --l-p2;
-    }
-    .landing .pin1 .ltitle { animation-name: l-s-title; animation-range: contain 0% contain 22%; }
-    .landing .pin1 .lstage { animation-name: l-s-stage; animation-range: contain 6% contain 38%; }
-    .landing .pin1 .lglow { animation-name: l-s-glow1; animation-range: contain 4% contain 50%; }
-    .landing .pin1 .lhalo { animation-name: l-s-halo1; animation-range: contain 4% contain 50%; }
-    .landing .pin1 .lcard, .landing .lsyl .zh { animation-name: l-s-in; animation-range: contain 42% contain 52%; }
-    .landing .pin1 .lcard { animation-name: l-s-fade; }
-    .landing .lsyl .py, .landing .lcard .lspk { animation-name: l-s-in; animation-range: contain 54% contain 64%; }
-    .landing .lsyls::after { animation-name: l-s-fade; animation-range: contain 54% contain 64%; }
-    .landing .lsyl .arg { animation-name: l-s-in; animation-range: contain 66% contain 76%; }
-    .landing .lcard .lab { animation-name: l-s-in; animation-range: contain 78% contain 88%; }
-    .landing .pin2 .lnight { animation-name: l-s-night; animation-range: contain 0% contain 35%; }
-    .landing .pin2 .lglow { animation-name: l-s-glow2; animation-range: contain 0% contain 35%; }
-    .landing .pin2 .lhalo { animation-name: l-s-halo2; animation-range: contain 0% contain 35%; }
-    .landing .pin2 .lend { animation-name: l-s-end; animation-range: contain 55% contain 72%; }
-    .landing .lsky i { animation-name: l-s-lamp; animation-range: contain var(--r) contain 100%; }
-  }
-  @media (prefers-reduced-motion: no-preference) and (min-width: 768px) {
-    .landing .pin1 { --y0: .1; --y1: -.08; }
-  }
-}
-@keyframes l-s-title { to { opacity: 0; transform: translate3d(0, -40px, 0); } }
-@keyframes l-s-stage { from { transform: translate3d(0, calc(var(--l-vh) * var(--y0)), 0); } to { transform: translate3d(0, calc(var(--l-vh) * var(--y1)), 0); } }
-@keyframes l-s-glow1 { from { opacity: .35; transform: translate(-50%, -50%) scale(.75); } to { opacity: 1; transform: translate(-50%, -50%) scale(1.3); } }
-@keyframes l-s-halo1 { from { opacity: 0; transform: translate(-50%, -50%) scale(.8); } to { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } }
-@keyframes l-s-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes l-s-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-@keyframes l-s-night { from { opacity: 0; } to { opacity: .96; } }
-@keyframes l-s-glow2 { from { opacity: .5; transform: translate(-50%, -50%) scale(.9); } to { opacity: 1; transform: translate(-50%, -50%) scale(1.6); } }
-@keyframes l-s-halo2 { from { opacity: .6; transform: translate(-50%, -50%) scale(1); } to { opacity: 1; transform: translate(-50%, -50%) scale(1.35); } }
-@keyframes l-s-end { from { opacity: 0; transform: translate3d(0, 20px, 0); } to { opacity: 1; transform: none; } }
-@keyframes l-s-lamp {
-  0% { opacity: 0; transform: translate3d(0, 0, 0); }
-  20%, 85% { opacity: 1; }
-  100% { opacity: 0; transform: translate3d(0, calc(var(--l-vh) * -.95 * var(--s)), 0); }
 }
