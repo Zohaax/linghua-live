@@ -56,14 +56,17 @@
 /* listening */
 .lh[data-mood="listening"] .lh-lantern { animation: lh-lean 2.4s ease-in-out infinite alternate; }
 .lh[data-mood="listening"] .lh-tassel { animation: lh-tassel-sway 2.4s ease-in-out infinite alternate; }
-.lh .lh-waves path { animation: lh-wave 1.5s ease-out infinite; opacity: 0; }
+/* Chrome keeps animating hidden SVG parts, so the extras only animate in their own mood */
+.lh .lh-waves path { opacity: 0; }
+.lh[data-mood="listening"] .lh-waves path { animation: lh-wave 1.5s ease-out infinite; }
 .lh .lh-waves path:nth-child(2) { animation-delay: .25s; }
 .lh .lh-waves path:nth-child(3) { animation-delay: .5s; }
 
 /* thinking */
 .lh[data-mood="thinking"] .lh-rig { animation: lh-sway-small 5s ease-in-out infinite alternate; }
 .lh[data-mood="thinking"] .lh-lantern { animation: lh-ponder 3s ease-in-out infinite alternate; }
-.lh .lh-dots circle { animation: lh-dot 1.5s ease-in-out infinite; opacity: .25; }
+.lh .lh-dots circle { opacity: .25; }
+.lh[data-mood="thinking"] .lh-dots circle { animation: lh-dot 1.5s ease-in-out infinite; }
 .lh .lh-dots circle:nth-child(2) { animation-delay: .2s; }
 .lh .lh-dots circle:nth-child(3) { animation-delay: .4s; }
 

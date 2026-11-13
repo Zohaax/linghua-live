@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
 import { Button } from "@/components/ui/button";
 import Lantern from "@/components/lantern/Lantern";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -8,10 +11,14 @@ import { buzz, prefersLessMotion, Speaker } from "./landingKit";
 import LandingFeatures from "./LandingFeatures";
 import "./landing.css";
 
-/* Sky lanterns at the end: x position (%), size (px), rise time (s), delay (s) */
+gsap.registerPlugin(ScrollTrigger, useGSAP);
+// On phones the address bar hides and shows while you scroll: don't recalculate then, so nothing jumps
+ScrollTrigger.config({ ignoreMobileResize: true });
+
+/* Sky lanterns at the end: x position (%), size (px), rise time (s), head start (s) */
 const SKY: [number, number, number, number][] = [
-  [8, 14, 9, 0], [22, 11, 11, 3.5], [36, 16, 8.5, 6], [64, 13, 10, 1.5], [78, 17, 9.5, 5],
-  [91, 12, 11.5, 2.5], [50, 10, 12, 8],
+  [8, 14, 9, 2], [21, 11, 11, 7], [34, 17, 8.5, 4], [47, 9, 12, 9], [57, 12, 10, 1],
+  [66, 13, 10, 6], [78, 18, 9.5, 3], [86, 15, 11, 8.5], [93, 11, 11.5, 5],
 ];
 
 /* 你好 split into its two syllables, each with pinyin and the Arabic sound guide */
@@ -21,35 +28,109 @@ const HELLO = [
 ];
 
 /**
- * Logged out Home. Hua is the star: he welcomes you and lights up, the features come alive one by one,
- * and at the end it is night and sky lanterns rise around him.
- * Nothing is tied to the scroll position: the page scrolls natively and each scene plays on its own clock,
- * moving only opacity and transform, so the browser never has to work while the finger moves.
+ * Logged out Home. Hua is the star: he welcomes you and lights up as you scroll, and 你好 builds in his light.
+ * The features come alive one by one, and at the end night falls and sky lanterns rise around him.
+ *
+ * The two scenes are GSAP ScrollTrigger timelines with a smoothed scrub: the animation glides after your
+ * finger or mouse wheel instead of stepping with every scroll event. The scenes stay pinned with CSS sticky
+ * (sized in svh/lvh, see landing.css), so pinning never waits on script and the page never changes height
+ * when a phone's address bar moves. Only opacity and transform are animated.
  */
 const Landing = () => {
   const { t } = useLanguage();
-  const heroRef = useRef<HTMLElement>(null);
-  const endRef = useRef<HTMLElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const pin1 = useRef<HTMLElement>(null);
+  const pin2 = useRef<HTMLElement>(null);
   const huaRef = useRef<HTMLDivElement>(null);
   const [lit, setLit] = useState(-1);
   const [pressed, setPressed] = useState(false);
 
-  // a scene that is off screen pauses its looping animations; the ending starts when it comes into view
+  useGSAP(() => {
+    const p1 = pin1.current, p2 = pin2.current, root = rootRef.current;
+    if (!p1 || !p2 || !root) return;
+    const mm = gsap.matchMedia();
+    mm.add({ motion: "(prefers-reduced-motion: no-preference)", desk: "(min-width: 768px)" }, (ctx) => {
+      const { motion, desk } = ctx.conditions as { motion: boolean; desk: boolean };
+      if (!motion) return; // a still page, laid out by CSS
+      const q1 = gsap.utils.selector(p1), q2 = gsap.utils.selector(p2);
+      const nav = () => (document.querySelector("nav") as HTMLElement | null)?.offsetHeight ?? 66;
+      // the screen below the header, with the address bar showing (CSS --l-sh)
+      const sh = () => (p1.querySelector(".pin-box") as HTMLElement).offsetHeight;
+      // how long a scene stays pinned: its section minus the sticky screen
+      const held = (pin: HTMLElement) => () => `+=${pin.offsetHeight - (pin.querySelector(".pin-in") as HTMLElement).offsetHeight}`;
+      const scene = (pin: HTMLElement) => ({
+        trigger: pin,
+        start: () => `top ${nav()}px`,
+        end: held(pin),
+        scrub: 0.6, // seconds to glide to the scroll position: this is what makes it feel smooth
+        invalidateOnRefresh: true,
+      });
+      const pop = { opacity: 1, y: 0, duration: 0.1, ease: "power2.out" };
+      const [y0, y1] = desk ? [0.1, -0.08] : [0.08, -0.14];
+
+      // The welcome: his title steps aside, he lights up and rises, and 你好 builds in his light
+      gsap.timeline({ defaults: { ease: "none" }, scrollTrigger: scene(p1) })
+        .fromTo(q1(".ltitle"), { opacity: 1, y: 0 }, { opacity: 0, y: -40, duration: 0.22 }, 0)
+        .fromTo(q1(".lglow.big"), { opacity: 0 }, { opacity: 1, duration: 0.46 }, 0.04)
+        .fromTo(q1(".lhalo"), { opacity: 0 }, { opacity: 1, duration: 0.46 }, 0.04)
+        .fromTo(q1(".lstage"), { y: () => sh() * y0 }, { y: () => sh() * y1, duration: 0.32 }, 0.06)
+        .fromTo(q1(".lcard"), { opacity: 0 }, { opacity: 1, duration: 0.1 }, 0.42)
+        .fromTo(q1(".lsyl .zh"), { opacity: 0, y: 14 }, pop, 0.42)
+        .fromTo(q1(".lsyl .py, .lcard .lspk"), { opacity: 0, y: 14 }, pop, 0.54)
+        .fromTo(q1(".ldiv"), { opacity: 0 }, { opacity: 1, duration: 0.1 }, 0.54)
+        .fromTo(q1(".lsyl .arg"), { opacity: 0, y: 14 }, pop, 0.66)
+        .fromTo(q1(".lcard .lab"), { opacity: 0, y: 14 }, pop, 0.78)
+        .set({}, {}, 1); // the finished card rests for the last stretch
+
+      // The ending: night falls, his glow grows, the sky fills with lanterns, then the way in
+      gsap.timeline({ defaults: { ease: "none" }, scrollTrigger: scene(p2) })
+        .fromTo(q2(".lnight"), { opacity: 0 }, { opacity: 0.96, duration: 0.35 }, 0)
+        .fromTo(q2(".lglow.big"), { opacity: 0 }, { opacity: 1, duration: 0.35 }, 0)
+        .fromTo(q2(".lsky"), { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.1)
+        .fromTo(q2(".lsky"), { y: 0 }, { y: () => sh() * -0.12, duration: 1 }, 0) // the sky drifts up as you scroll
+        .fromTo(q2(".lend"), { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.17, ease: "power2.out" }, 0.55)
+        .set({}, {}, 1);
+    });
+
+    // Recalculate where the scenes start when the page above them changes height
+    // (fonts arriving, a phrase opening, switching language). Never on scroll.
+    let wait = 0;
+    const ro = new ResizeObserver(() => {
+      clearTimeout(wait);
+      wait = window.setTimeout(() => ScrollTrigger.refresh(), 150);
+    });
+    ro.observe(root);
+    document.fonts?.ready.then(() => ScrollTrigger.refresh()).catch(() => {});
+    return () => {
+      clearTimeout(wait);
+      ro.disconnect();
+      mm.revert();
+    };
+  }, { scope: rootRef });
+
   useEffect(() => {
-    const els = [heroRef.current, endRef.current].filter(Boolean) as HTMLElement[];
     if (!("IntersectionObserver" in window)) {
-      els.forEach((el) => el.classList.add("live", "seen"));
+      pin1.current?.classList.add("live");
+      pin2.current?.classList.add("live");
       return;
     }
-    const io = new IntersectionObserver(
+    // a scene that is off screen pauses its looping animations
+    const live = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle("live", e.isIntersecting)));
+    [pin1.current, pin2.current].forEach((pin) => pin && live.observe(pin));
+    // the small looping touches in the features (glowing words, swaying icons) rest while off screen
+    const rest = new IntersectionObserver(
       (es) => es.forEach((e) => {
-        e.target.classList.toggle("live", e.isIntersecting);
-        if (e.isIntersecting) e.target.classList.add("seen");
+        const el = e.target as HTMLElement;
+        if (e.isIntersecting) delete el.dataset.off;
+        else el.dataset.off = "";
       }),
-      { threshold: 0.2 },
+      { rootMargin: "100px 0px" },
     );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
+    rootRef.current?.querySelectorAll(".feat, .fhead").forEach((el) => rest.observe(el));
+    return () => {
+      live.disconnect();
+      rest.disconnect();
+    };
   }, []);
 
   // Tap the card: Hua says 你好, gives a little bounce, and each syllable lights as he says it
@@ -76,54 +157,69 @@ const Landing = () => {
   };
 
   return (
-    <div className="landing">
-      <section className="lhero" ref={heroRef}>
-        <div className="ltitle">
-          <h1>{t("home.hero.title")}</h1>
-          <p>{t("land.hero.sub")}</p>
-        </div>
-        <div className="lstage">
-          <div className="lglow" />
-          <div className="lhalo" />
-          <div className="lhua" ref={huaRef}>
-            <div className="lfloat"><Lantern mood="happy" /></div>
+    <div className="landing" ref={rootRef}>
+      <section className="pin pin1" ref={pin1}>
+        <div className="pin-in">
+          <div className="pin-box">
+            <div className="ltitle">
+              <h1>{t("home.hero.title")}</h1>
+              <p>{t("land.hero.sub")}</p>
+            </div>
+            <div className="lstage">
+              <div className="lglow" />
+              <div className="lglow big" />
+              <div className="lhalo" />
+              <div className="lhua" ref={huaRef}>
+                <div className="lfloat"><Lantern mood="happy" /></div>
+              </div>
+            </div>
+            <button type="button" className={`lcard${pressed ? " press" : ""}`} onClick={hello} aria-label={t("land.hello.aria")}>
+              <span className="lsyls">
+                <span className="ldiv" aria-hidden="true" />
+                {HELLO.map((s, i) => (
+                  <span key={s.zh} className={`lsyl${lit === i ? " on" : ""}`}>
+                    <span className="zh" lang="zh">{s.zh}</span>
+                    <span className="py l-py">{s.py}</span>
+                    <span className="arg" lang="ar" dir="rtl">{s.ar}</span>
+                  </span>
+                ))}
+              </span>
+              <span className="lab">{t("land.hello")}</span>
+              <span className="lspk"><Speaker /></span>
+            </button>
           </div>
         </div>
-        <button type="button" className={`lcard${pressed ? " press" : ""}`} onClick={hello} aria-label={t("land.hello.aria")}>
-          <span className="lsyls">
-            {HELLO.map((s, i) => (
-              <span key={s.zh} className={`lsyl${lit === i ? " on" : ""}`}>
-                <span className="zh" lang="zh">{s.zh}</span>
-                <span className="py l-py">{s.py}</span>
-                <span className="arg" lang="ar" dir="rtl">{s.ar}</span>
-              </span>
-            ))}
-          </span>
-          <span className="lab">{t("land.hello")}</span>
-          <span className="lspk"><Speaker /></span>
-        </button>
       </section>
 
       <LandingFeatures />
 
-      <section className="lnightsec" ref={endRef}>
-        <div className="lsky" aria-hidden="true">
-          {SKY.map(([x, w, d, delay], i) => (
-            <i key={i} style={{ "--x": `${x}%`, "--w": `${w}px`, "--d": `${d}s`, "--dl": `${delay}s` } as React.CSSProperties} />
-          ))}
-        </div>
-        <div className="lstage">
-          <div className="lglow" />
-          <div className="lhalo" />
-          <div className="lhua">
-            <div className="lfloat"><Lantern mood="happy" /></div>
+      <section className="pin pin2" ref={pin2}>
+        <div className="pin-in">
+          <div className="lnight" />
+          <div className="lsky" aria-hidden="true">
+            {SKY.map(([x, w, d, h], i) => (
+              <i
+                key={i}
+                style={{ "--x": `${x}%`, "--w": `${w}px`, "--d": `${d}s`, "--h": `-${h}s`, "--p": (h / d).toFixed(2) } as React.CSSProperties}
+              />
+            ))}
           </div>
-        </div>
-        <div className="lend">
-          <h2>{t("home.closing.title")}</h2>
-          <Link to="/auth">
-            <Button size="lg">{t("home.closing.cta")}</Button>
-          </Link>
+          <div className="pin-box">
+            <div className="lstage">
+              <div className="lglow" />
+              <div className="lglow big" />
+              <div className="lhalo" />
+              <div className="lhua">
+                <div className="lfloat"><Lantern mood="happy" /></div>
+              </div>
+            </div>
+            <div className="lend">
+              <h2>{t("home.closing.title")}</h2>
+              <Link to="/auth">
+                <Button size="lg">{t("home.closing.cta")}</Button>
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
     </div>

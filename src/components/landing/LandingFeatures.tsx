@@ -93,7 +93,7 @@ const Feat = ({
   const [ref, inView] = useInView<HTMLDivElement>();
   return (
     <div ref={ref} className={`feat rv ${kind}${inView ? " in" : ""}`}>
-      <div className="ic">{icon}</div>
+      <div className="ic"><span className="ico">{icon}</span></div>
       <h3 className="t" aria-label={`${plain} ${red}`}><TypeIn plain={plain} red={red} start={inView} /></h3>
       <p className="d">
         {name && <span className="pname">{name}</span>}
